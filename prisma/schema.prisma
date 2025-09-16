@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and preferences
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  image             String?
+  emailVerified     DateTime?
+  theme             Theme     @default(LIGHT)
+  emailNotifications Boolean  @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  accounts          Account[]
+  sessions          Session[]
+  chatSessions      ChatSession[]
+
+  @@map("users")
+}
+
+// Chat session model
+model ChatSession {
+  id          String    @id @default(cuid())
+  title       String?
+  userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  // Indexes for performance
+  @@index([userId, createdAt], name: "idx_chat_sessions_user_created")
+  @@index([userId, updatedAt], name: "idx_chat_sessions_user_updated")
+  @@index([title], name: "idx_chat_sessions_title")
+  @@index([updatedAt], name: "idx_chat_sessions_updated")
+  @@map("chat_sessions")
+}
+
+// Message model for chat history
+model Message {
+  id            String      @id @default(cuid())
+  content       String
+  role          MessageRole
+  sessionId     String
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Indexes for performance
+  @@index([sessionId, createdAt], name: "idx_messages_session_created")
+  @@index([sessionId, role], name: "idx_messages_session_role")
+  @@index([createdAt], name: "idx_messages_created")
+  @@index([role], name: "idx_messages_role")
+  @@map("messages")
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// Enums
+enum Theme {
+  LIGHT
+  DARK
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}

@@ -1,0 +1,86 @@
+# Prometheus alerting rules for Career Counseling Chat application
+
+groups:
+  - name: application_alerts
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'High error rate detected'
+          description: 'Error rate is {{ $value }} errors per second'
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High response time detected'
+          description: '95th percentile response time is {{ $value }} seconds'
+
+      # Database connection issues
+      - alert: DatabaseConnectionFailure
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Database connection failure'
+          description: 'PostgreSQL database is not responding'
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High memory usage'
+          description: 'Memory usage is above 90%'
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High CPU usage'
+          description: 'CPU usage is above 80%'
+
+  - name: business_alerts
+    rules:
+      # AI service failures
+      - alert: AIServiceFailures
+        expr: rate(ai_requests_total{status="error"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'AI service experiencing failures'
+          description: 'AI service error rate is {{ $value }} per second'
+
+      # Authentication failures
+      - alert: AuthenticationFailures
+        expr: rate(auth_attempts_total{status="failure"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High authentication failure rate'
+          description: 'Authentication failure rate is {{ $value }} per second'
+
+      # Low user activity (potential issue)
+      - alert: LowUserActivity
+        expr: rate(user_sessions_total[1h]) < 0.01
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: 'Low user activity detected'
+          description: 'User session rate is {{ $value }} per second'
