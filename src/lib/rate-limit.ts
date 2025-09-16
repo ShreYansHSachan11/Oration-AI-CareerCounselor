@@ -1,4 +1,15 @@
-import { TRPCError } from '@trpc/server';
+// Custom error class for rate limiting
+export class RateLimitError extends Error {
+  public readonly code: string;
+  public readonly resetTime: number;
+
+  constructor(message: string, resetTime: number) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.code = 'TOO_MANY_REQUESTS';
+    this.resetTime = resetTime;
+  }
+}
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
@@ -16,6 +27,7 @@ interface RateLimitEntry {
 class RateLimiter {
   private store = new Map<string, RateLimitEntry>();
   private config: Required<RateLimitConfig>;
+  private cleanupInterval?: NodeJS.Timeout;
 
   constructor(config: RateLimitConfig) {
     this.config = {
@@ -26,8 +38,10 @@ class RateLimiter {
       ...config,
     };
 
-    // Clean up expired entries every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    // Only set up cleanup interval if not in Edge Runtime
+    if (typeof setInterval !== 'undefined') {
+      this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    }
   }
 
   async checkLimit(userId: string, endpoint?: string): Promise<void> {
@@ -46,10 +60,10 @@ class RateLimiter {
 
     if (entry.count >= this.config.maxRequests) {
       const resetInSeconds = Math.ceil((entry.resetTime - now) / 1000);
-      throw new TRPCError({
-        code: 'TOO_MANY_REQUESTS',
-        message: `Rate limit exceeded. Try again in ${resetInSeconds} seconds.`,
-      });
+      throw new RateLimitError(
+        `Rate limit exceeded. Try again in ${resetInSeconds} seconds.`,
+        entry.resetTime
+      );
     }
 
     entry.count++;
@@ -70,6 +84,13 @@ class RateLimiter {
   ): { count: number; resetTime: number } | null {
     const key = this.config.keyGenerator(userId, endpoint);
     return this.store.get(key) || null;
+  }
+
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    this.store.clear();
   }
 }
 
@@ -94,87 +115,14 @@ export const searchRateLimiter = new RateLimiter({
   maxRequests: 20, // 20 searches per minute per user
 });
 
-// Rate limiting middleware for tRPC
-export function createRateLimitMiddleware(
+// Simple rate limit check function (no tRPC dependency)
+export async function checkRateLimit(
   rateLimiter: RateLimiter,
+  userId: string,
   endpoint?: string
-) {
-  return async (opts: { ctx: { session?: { user?: { id: string } } } }) => {
-    const userId = opts.ctx.session?.user?.id;
-
-    if (!userId) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'Authentication required',
-      });
-    }
-
-    await rateLimiter.checkLimit(userId, endpoint);
-
-    return opts;
-  };
+): Promise<void> {
+  await rateLimiter.checkLimit(userId, endpoint);
 }
 
-// IP-based rate limiting for public endpoints
-class IPRateLimiter {
-  private store = new Map<string, RateLimitEntry>();
-  private config: RateLimitConfig;
-
-  constructor(config: RateLimitConfig) {
-    this.config = config;
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
-  }
-
-  async checkLimit(ip: string): Promise<void> {
-    const now = Date.now();
-    const entry = this.store.get(ip);
-
-    if (!entry || now > entry.resetTime) {
-      this.store.set(ip, {
-        count: 1,
-        resetTime: now + this.config.windowMs,
-      });
-      return;
-    }
-
-    if (entry.count >= this.config.maxRequests) {
-      const resetInSeconds = Math.ceil((entry.resetTime - now) / 1000);
-      throw new TRPCError({
-        code: 'TOO_MANY_REQUESTS',
-        message: `Rate limit exceeded. Try again in ${resetInSeconds} seconds.`,
-      });
-    }
-
-    entry.count++;
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.store.entries()) {
-      if (now > entry.resetTime) {
-        this.store.delete(key);
-      }
-    }
-  }
-}
-
-export const ipRateLimiter = new IPRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 200, // 200 requests per 15 minutes per IP
-});
-
-// Helper to get client IP
-export function getClientIP(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  const realIP = req.headers.get('x-real-ip');
-
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-
-  if (realIP) {
-    return realIP;
-  }
-
-  return 'unknown';
-}
+// Export the rate limiters for server-side use
+export { globalRateLimiter, messageRateLimiter, sessionRateLimiter, searchRateLimiter };

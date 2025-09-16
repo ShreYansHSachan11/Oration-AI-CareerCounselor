@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { api } from '@/trpc/react';
@@ -135,14 +136,14 @@ export function ChatSidebar({
   };
 
   return (
-    <div className={cn('flex flex-col h-full bg-background', className)}>
+    <div className={cn('flex flex-col h-full glass border-r border-white/10', className)}>
       {/* Header */}
-      <div className="p-3 sm:p-4 border-b bg-background/95 backdrop-blur">
+      <div className="p-3 sm:p-4 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent backdrop-blur-xl">
         <Button
           onClick={() => createSessionMutation.mutate({})}
           disabled={createSessionMutation.isPending}
-          className="w-full justify-start gap-2 mb-3 sm:mb-4 h-11 sm:h-10 touch-manipulation disabled:opacity-50"
-          variant="default"
+          className="w-full justify-start gap-3 mb-4 h-12 touch-manipulation disabled:opacity-50 font-semibold"
+          variant="gradient"
         >
           {createSessionMutation.isPending ? (
             <>
@@ -159,12 +160,12 @@ export function ChatSidebar({
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
           <Input
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 sm:h-10 text-base sm:text-sm touch-manipulation"
+            className="pl-12 h-12 text-base glass border-white/20 rounded-xl backdrop-blur-sm placeholder:text-muted-foreground/60 focus:border-primary/40 transition-all duration-200"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -173,7 +174,7 @@ export function ChatSidebar({
       </div>
 
       {/* Sessions List */}
-      <div className="flex-1 overflow-y-auto overscroll-contain webkit-overflow-scrolling-touch">
+      <div className="flex-1 overflow-y-auto overscroll-contain webkit-overflow-scrolling-touch scrollbar-thin scrollbar-thumb-muted">
         <SmartFallback
           isLoading={isLoading}
           error={sessionsData?.error}
@@ -195,7 +196,7 @@ export function ChatSidebar({
           ))}
 
         {!isLoading && !sessionsData?.error && sessions.length > 0 && (
-          <div className="p-2 space-y-1 pb-safe">
+          <div className="p-3 space-y-2 pb-safe">
             {sessions.map(session => (
               <SessionItem
                 key={session.id}
@@ -261,74 +262,111 @@ function SessionItem({
 
   return (
     <Card
+      variant={isSelected ? "elevated" : "glass"}
+      padding="default"
       className={cn(
-        'p-3 cursor-pointer transition-all duration-200 hover:bg-accent/50 group touch-manipulation',
-        'active:bg-accent/70 active:scale-[0.98] sm:active:bg-accent/50 sm:active:scale-100', // Enhanced touch feedback with scale
-        'focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1', // Better focus states
-        isSelected && 'bg-accent border-accent-foreground/20 shadow-sm',
+        'cursor-pointer transition-all duration-300 group touch-manipulation hover-lift',
+        'active:scale-[0.98] sm:active:scale-100',
+        'focus-within:ring-2 focus-within:ring-primary/50 focus-within:ring-offset-2',
+        isSelected && 'gradient-primary text-white shadow-large border-primary/30',
+        !isSelected && 'hover:bg-white/10 dark:hover:bg-black/10',
         (isUpdating || isDeleting) && 'opacity-50 pointer-events-none'
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
-      onTouchStart={() => setShowActions(true)} // Show actions on touch
+      onTouchStart={() => setShowActions(true)}
       onTouchEnd={() => {
-        // Hide actions after a delay on touch devices
         setTimeout(() => setShowActions(false), 3000);
       }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0" onClick={onSelect}>
-          <div className="flex items-center gap-2 mb-1">
-            <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex items-center gap-3 mb-2">
+            <div className={cn(
+              "p-2 rounded-lg transition-colors",
+              isSelected ? "bg-white/20" : "bg-primary/10"
+            )}>
+              <MessageSquare className={cn(
+                "h-4 w-4 flex-shrink-0",
+                isSelected ? "text-white" : "text-primary"
+              )} />
+            </div>
             {isEditing ? (
               <Input
                 value={editTitle}
                 onChange={e => onEditTitleChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={onEditSave}
-                className="h-7 sm:h-6 text-sm font-medium"
+                className="h-8 text-sm font-semibold glass border-white/30 rounded-lg"
                 autoFocus
               />
             ) : (
-              <h3 className="text-sm font-medium truncate">
+              <h3 className={cn(
+                "text-sm font-semibold truncate",
+                isSelected ? "text-white" : "text-foreground"
+              )}>
                 {session.title || 'Untitled Chat'}
               </h3>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            {session._count.messages} messages •{' '}
-            {formatDistanceToNow(new Date(session.updatedAt), {
-              addSuffix: true,
-            })}
-          </p>
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant={isSelected ? "outline" : "secondary"} 
+              size="sm"
+              className={cn(
+                "text-xs",
+                isSelected && "border-white/30 text-white/80 bg-white/10"
+              )}
+            >
+              {session._count.messages} messages
+            </Badge>
+            <span className={cn(
+              "text-xs",
+              isSelected ? "text-white/70" : "text-muted-foreground"
+            )}>
+              {formatDistanceToNow(new Date(session.updatedAt), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
         </div>
 
         {/* Actions */}
         {(showActions || isSelected) && !isEditing && (
-          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
             <Button
               variant="ghost"
-              size="icon"
-              className="h-9 w-9 sm:h-7 sm:w-7 touch-manipulation hover:bg-accent/80" // Larger touch targets on mobile
+              size="icon-sm"
+              className={cn(
+                "h-8 w-8 touch-manipulation rounded-lg backdrop-blur-sm",
+                isSelected 
+                  ? "hover:bg-white/20 text-white/80 hover:text-white" 
+                  : "hover:bg-accent/80"
+              )}
               onClick={e => {
                 e.stopPropagation();
                 onEditStart();
               }}
               title="Edit session title"
             >
-              <Edit3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <Edit3 className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
-              size="icon"
-              className="h-9 w-9 sm:h-7 sm:w-7 text-destructive hover:text-destructive hover:bg-destructive/10 touch-manipulation"
+              size="icon-sm"
+              className={cn(
+                "h-8 w-8 touch-manipulation rounded-lg backdrop-blur-sm",
+                isSelected
+                  ? "text-red-300 hover:text-red-200 hover:bg-red-500/20"
+                  : "text-destructive hover:text-destructive hover:bg-destructive/10"
+              )}
               onClick={e => {
                 e.stopPropagation();
                 onDelete();
               }}
               title="Delete session"
             >
-              <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         )}

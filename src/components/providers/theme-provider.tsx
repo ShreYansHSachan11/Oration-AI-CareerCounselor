@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { api } from '@/trpc/react';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -27,8 +28,11 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
+  const { data: session, status } = useSession();
 
+  // Only fetch user profile if authenticated
   const { data: userProfile } = api.user.getProfile.useQuery(undefined, {
+    enabled: status === 'authenticated' && !!session?.user,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -84,47 +88,47 @@ export function ThemeProvider({
     // Add current theme class
     root.classList.add(resolvedTheme);
 
-    // Update CSS custom properties for theme
+    // Update CSS custom properties for theme with modern colors
     if (resolvedTheme === 'dark') {
-      root.style.setProperty('--background', '#0a0a0a');
-      root.style.setProperty('--foreground', '#ededed');
-      root.style.setProperty('--card', '#0a0a0a');
-      root.style.setProperty('--card-foreground', '#ededed');
-      root.style.setProperty('--popover', '#0a0a0a');
-      root.style.setProperty('--popover-foreground', '#ededed');
-      root.style.setProperty('--primary', '#3b82f6');
+      root.style.setProperty('--background', '#0f0f23');
+      root.style.setProperty('--foreground', '#f8fafc');
+      root.style.setProperty('--card', '#1a1a2e');
+      root.style.setProperty('--card-foreground', '#f8fafc');
+      root.style.setProperty('--popover', '#1a1a2e');
+      root.style.setProperty('--popover-foreground', '#f8fafc');
+      root.style.setProperty('--primary', '#667eea');
       root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', '#1e293b');
-      root.style.setProperty('--secondary-foreground', '#f8fafc');
-      root.style.setProperty('--muted', '#1e293b');
+      root.style.setProperty('--secondary', '#16213e');
+      root.style.setProperty('--secondary-foreground', '#e2e8f0');
+      root.style.setProperty('--muted', '#16213e');
       root.style.setProperty('--muted-foreground', '#94a3b8');
       root.style.setProperty('--accent', '#1e293b');
-      root.style.setProperty('--accent-foreground', '#f8fafc');
-      root.style.setProperty('--destructive', '#ef4444');
+      root.style.setProperty('--accent-foreground', '#f1f5f9');
+      root.style.setProperty('--destructive', '#ff6b6b');
       root.style.setProperty('--destructive-foreground', '#ffffff');
       root.style.setProperty('--border', '#334155');
       root.style.setProperty('--input', '#334155');
-      root.style.setProperty('--ring', '#3b82f6');
+      root.style.setProperty('--ring', '#667eea');
     } else {
-      root.style.setProperty('--background', '#ffffff');
-      root.style.setProperty('--foreground', '#171717');
+      root.style.setProperty('--background', '#fefefe');
+      root.style.setProperty('--foreground', '#1a202c');
       root.style.setProperty('--card', '#ffffff');
-      root.style.setProperty('--card-foreground', '#171717');
+      root.style.setProperty('--card-foreground', '#1a202c');
       root.style.setProperty('--popover', '#ffffff');
-      root.style.setProperty('--popover-foreground', '#171717');
-      root.style.setProperty('--primary', '#2563eb');
+      root.style.setProperty('--popover-foreground', '#1a202c');
+      root.style.setProperty('--primary', '#667eea');
       root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', '#f1f5f9');
-      root.style.setProperty('--secondary-foreground', '#0f172a');
-      root.style.setProperty('--muted', '#f8fafc');
-      root.style.setProperty('--muted-foreground', '#64748b');
-      root.style.setProperty('--accent', '#f1f5f9');
-      root.style.setProperty('--accent-foreground', '#0f172a');
-      root.style.setProperty('--destructive', '#ef4444');
+      root.style.setProperty('--secondary', '#f7fafc');
+      root.style.setProperty('--secondary-foreground', '#2d3748');
+      root.style.setProperty('--muted', '#f7fafc');
+      root.style.setProperty('--muted-foreground', '#718096');
+      root.style.setProperty('--accent', '#edf2f7');
+      root.style.setProperty('--accent-foreground', '#2d3748');
+      root.style.setProperty('--destructive', '#ff6b6b');
       root.style.setProperty('--destructive-foreground', '#ffffff');
       root.style.setProperty('--border', '#e2e8f0');
       root.style.setProperty('--input', '#e2e8f0');
-      root.style.setProperty('--ring', '#2563eb');
+      root.style.setProperty('--ring', '#667eea');
     }
   }, [resolvedTheme, mounted]);
 
@@ -135,7 +139,7 @@ export function ThemeProvider({
     localStorage.setItem(storageKey, newTheme);
 
     // Update user preferences in database if authenticated
-    if (userProfile) {
+    if (status === 'authenticated' && session?.user && userProfile) {
       const dbTheme =
         newTheme === 'system'
           ? 'LIGHT'

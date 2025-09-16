@@ -45,57 +45,62 @@ export function TypingIndicator({
           {/* Avatar */}
           <div className="flex-shrink-0">
             <motion.div
-              className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"
+              className="w-10 h-10 gradient-primary rounded-full flex items-center justify-center shadow-large"
               animate={{
                 boxShadow: [
-                  '0 0 0 0 rgba(59, 130, 246, 0.4)',
-                  '0 0 0 4px rgba(59, 130, 246, 0.1)',
-                  '0 0 0 0 rgba(59, 130, 246, 0.4)',
+                  '0 0 0 0 rgba(102, 126, 234, 0.6)',
+                  '0 0 0 8px rgba(102, 126, 234, 0.1)',
+                  '0 0 0 0 rgba(102, 126, 234, 0.6)',
                 ],
+                rotate: variant === 'thinking' ? [0, 360] : 0,
               }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ 
+                boxShadow: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                rotate: { duration: 3, repeat: Infinity, ease: 'linear' }
+              }}
             >
               {variant === 'thinking' ? (
-                <Brain className="w-4 h-4 text-primary" />
+                <Brain className="w-5 h-5 text-white" />
               ) : (
-                <Bot className="w-4 h-4 text-primary" />
+                <Bot className="w-5 h-5 text-white" />
               )}
             </motion.div>
           </div>
 
           {/* Typing bubble */}
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.2 }}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3, type: "spring" }}
           >
-            <Card className="p-4 bg-muted max-w-[250px] relative overflow-hidden">
-              {/* Background pulse effect */}
+            <Card variant="glass" className="p-4 max-w-[280px] relative overflow-hidden shadow-large">
+              {/* Background shimmer effect */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent"
-                animate={{ x: [-100, 300] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                animate={{ x: [-100, 350] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
               />
 
-              <div className="flex items-center gap-3 relative z-10">
-                <span className="text-sm text-muted-foreground font-medium">
+              <div className="flex items-center gap-4 relative z-10">
+                <span className="text-sm font-semibold text-foreground/90">
                   {displayMessage}
                 </span>
 
-                {/* Animated dots */}
-                <div className="flex gap-1">
+                {/* Enhanced animated dots */}
+                <div className="flex gap-1.5">
                   {[0, 1, 2].map(index => (
                     <motion.div
                       key={index}
-                      className="w-2 h-2 bg-primary/60 rounded-full"
+                      className="w-2.5 h-2.5 gradient-primary rounded-full shadow-soft"
                       animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.6, 1, 0.6],
+                        scale: [1, 1.4, 1],
+                        opacity: [0.5, 1, 0.5],
+                        y: [0, -4, 0],
                       }}
                       transition={{
-                        duration: 1.4,
+                        duration: 1.2,
                         repeat: Infinity,
-                        delay: index * 0.2,
+                        delay: index * 0.15,
                         ease: 'easeInOut',
                       }}
                     />

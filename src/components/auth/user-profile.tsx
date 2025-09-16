@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,8 +18,16 @@ import Image from 'next/image';
 
 export function UserProfile() {
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { data: session, status } = useSession();
 
-  const { data: userProfile, isLoading } = api.user.getProfile.useQuery();
+  // Only make the API call if the user is authenticated
+  const { data: userProfile, isLoading } = api.user.getProfile.useQuery(
+    undefined,
+    {
+      enabled: status === 'authenticated' && !!session?.user,
+    }
+  );
+  
   const updatePreferences = api.user.updatePreferences.useMutation({
     onSuccess: () => {
       // Refetch user profile to get updated data
@@ -55,11 +63,25 @@ export function UserProfile() {
     }
   };
 
-  if (isLoading) {
+  // Show loading while checking authentication or loading profile
+  if (status === 'loading' || isLoading) {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardContent className="flex items-center justify-center p-6">
           <Spinner size="md" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If not authenticated, show error
+  if (status === 'unauthenticated' || !session?.user) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardContent className="p-6">
+          <p className="text-center text-muted-foreground">
+            Please sign in to view your profile
+          </p>
         </CardContent>
       </Card>
     );

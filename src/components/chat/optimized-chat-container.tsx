@@ -226,7 +226,7 @@ export function OptimizedChatContainer({
         )}
 
         {/* Messages area */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0 overflow-hidden">
           {selectedSessionId ? (
             <Suspense fallback={<MessageListFallback />}>
               <LazyOptimizedMessageList
@@ -234,7 +234,8 @@ export function OptimizedChatContainer({
                 onRegenerateResponse={handleRegenerateResponse}
                 onDeleteMessage={handleDeleteMessage}
                 isRegenerating={regenerateResponseMutation.isPending}
-                containerHeight={isMobile ? window.innerHeight - 200 : 600}
+                containerHeight={isMobile ? window.innerHeight - 200 : undefined}
+                className="h-full"
               />
             </Suspense>
           ) : (

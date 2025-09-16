@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, Bot, Copy, RotateCcw, Trash2, Check } from 'lucide-react';
+import { User, Bot, Copy, RotateCcw, Trash2, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { MessageStatusIndicator } from './message-status-indicator';
 import { cn } from '@/lib/utils';
@@ -72,13 +74,20 @@ export function MessageBubble({
       {isAssistant && (
         <motion.div
           className="flex-shrink-0"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.2 }}
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: 0.2, duration: 0.4, type: "spring" }}
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-          </div>
+          <Avatar size="default" variant="gradient" className="shadow-large hover-glow">
+            <AvatarFallback className="gradient-primary text-white">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <Sparkles className="w-4 h-4" />
+              </motion.div>
+            </AvatarFallback>
+          </Avatar>
         </motion.div>
       )}
 
@@ -91,25 +100,40 @@ export function MessageBubble({
       >
         {/* Message Bubble */}
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{
             scale: 1,
             opacity: message.isOptimistic ? 0.7 : 1,
+            y: 0,
           }}
-          transition={{ duration: 0.2, delay: 0.1 }}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          transition={{ 
+            duration: 0.3, 
+            delay: 0.1,
+            type: "spring",
+            stiffness: 300,
+            damping: 30
+          }}
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
         >
           <Card
+            variant={isUser ? "gradient" : "glass"}
+            padding="default"
             className={cn(
-              'p-3 sm:p-4 relative transition-all duration-200 touch-manipulation',
-              'shadow-sm hover:shadow-md',
+              'relative transition-all duration-300 touch-manipulation overflow-hidden',
+              'shadow-medium hover:shadow-large min-h-0',
               isUser
-                ? 'bg-primary text-primary-foreground ml-6 sm:ml-8 md:ml-12'
-                : 'bg-muted mr-6 sm:mr-8 md:mr-12',
-              message.isOptimistic && 'opacity-70 animate-pulse',
-              isRegenerating && 'opacity-50'
+                ? 'ml-6 sm:ml-8 md:ml-12 gradient-primary text-white'
+                : 'mr-6 sm:mr-8 md:mr-12 glass backdrop-blur-xl border-white/20 dark:border-white/10',
+              message.isOptimistic && 'opacity-70 pulse-modern',
+              isRegenerating && 'opacity-50',
+              'before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700'
             )}
+            style={{
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              minHeight: 'auto',
+            }}
           >
             {/* Regenerating indicator */}
             <AnimatePresence>
@@ -133,7 +157,13 @@ export function MessageBubble({
             </AnimatePresence>
 
             {/* Message text */}
-            <div className="whitespace-pre-wrap break-words text-sm sm:text-base leading-relaxed select-text">
+            <div className={cn(
+              'whitespace-pre-wrap break-words select-text relative z-10',
+              'text-sm sm:text-base leading-relaxed font-medium',
+              'max-w-none overflow-wrap-anywhere',
+              'hyphens-auto tracking-wide',
+              isUser ? 'text-white' : 'text-foreground/90'
+            )}>
               {message.content}
             </div>
 
@@ -146,8 +176,8 @@ export function MessageBubble({
                     initial={{ opacity: 0, scale: 0.8, y: 5 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 5 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute -top-2 right-2 flex items-center gap-1 bg-background border rounded-md shadow-sm"
+                    transition={{ duration: 0.2, type: "spring" }}
+                    className="absolute -top-3 right-2 flex items-center gap-1 glass rounded-xl shadow-large border-white/20"
                   >
                     <motion.div
                       whileHover={{ scale: 1.1 }}
@@ -155,8 +185,8 @@ export function MessageBubble({
                     >
                       <Button
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation hover:bg-accent/80"
+                        size="icon-sm"
+                        className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation hover:bg-white/20 dark:hover:bg-black/20 backdrop-blur-sm rounded-lg"
                         onClick={handleCopy}
                         title="Copy message"
                       >
@@ -191,8 +221,8 @@ export function MessageBubble({
                       >
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation hover:bg-accent/80"
+                          size="icon-sm"
+                          className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation hover:bg-white/20 dark:hover:bg-black/20 backdrop-blur-sm rounded-lg"
                           onClick={onRegenerate}
                           title="Regenerate response"
                         >
@@ -208,8 +238,8 @@ export function MessageBubble({
                       >
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 sm:h-7 sm:w-7 text-destructive hover:text-destructive hover:bg-destructive/10 touch-manipulation"
+                          size="icon-sm"
+                          className="h-8 w-8 sm:h-7 sm:w-7 text-red-400 hover:text-red-300 hover:bg-red-500/20 touch-manipulation backdrop-blur-sm rounded-lg"
                           onClick={onDelete}
                           title="Delete message"
                         >
@@ -224,38 +254,42 @@ export function MessageBubble({
         </motion.div>
 
         {/* Message metadata */}
-        <div
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
           className={cn(
-            'flex items-center gap-2 mt-1 text-xs text-muted-foreground'
+            'flex items-center gap-2 mt-2 text-xs text-muted-foreground/70'
           )}
         >
           {/* Timestamp */}
-          <span>{formatTimestamp(message.createdAt)}</span>
+          <Badge variant="outline" size="sm" className="text-xs font-normal">
+            {formatTimestamp(message.createdAt)}
+          </Badge>
 
           {/* Status indicator for user messages */}
           {isUser && message.status && (
-            <>
-              <span>•</span>
-              <MessageStatusIndicator
-                status={message.status}
-                timestamp={message.createdAt}
-              />
-            </>
+            <MessageStatusIndicator
+              status={message.status}
+              timestamp={message.createdAt}
+            />
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Avatar for user messages */}
       {isUser && (
         <motion.div
           className="flex-shrink-0"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.2 }}
+          initial={{ scale: 0, rotate: 180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: 0.2, duration: 0.4, type: "spring" }}
         >
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-          </div>
+          <Avatar size="default" variant="glass" className="shadow-medium hover-lift">
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+              <User className="w-4 h-4" />
+            </AvatarFallback>
+          </Avatar>
         </motion.div>
       )}
     </motion.div>

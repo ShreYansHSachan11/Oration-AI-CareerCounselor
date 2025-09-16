@@ -194,13 +194,16 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
         }
       >
         <motion.div
-          className={cn('flex flex-col h-full', className)}
+          className={cn('flex flex-col h-full relative overflow-hidden', className)}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
+          {/* Animated background */}
+          <div className="absolute inset-0 animated-gradient opacity-5 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 dark:from-blue-950/20 dark:to-purple-950/20 pointer-events-none" />
           {/* Messages Area */}
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-hidden relative z-10">
             <MessageList
               messages={messages}
               isLoading={isLoadingMessages}
@@ -234,7 +237,7 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
 
           {/* Chat Input */}
           <motion.div
-            className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 p-3 sm:p-4 safe-area-inset-bottom"
+            className="border-t border-white/10 glass backdrop-blur-xl p-4 safe-area-inset-bottom relative z-10"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.3 }}

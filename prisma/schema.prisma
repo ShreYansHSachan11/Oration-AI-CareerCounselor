@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -35,6 +35,8 @@ model ChatSession {
   id          String    @id @default(cuid())
   title       String?
   userId      String
+  isArchived  Boolean   @default(false)
+  archivedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -45,6 +47,7 @@ model ChatSession {
   // Indexes for performance
   @@index([userId, createdAt], name: "idx_chat_sessions_user_created")
   @@index([userId, updatedAt], name: "idx_chat_sessions_user_updated")
+  @@index([userId, isArchived], name: "idx_chat_sessions_user_archived")
   @@index([title], name: "idx_chat_sessions_title")
   @@index([updatedAt], name: "idx_chat_sessions_updated")
   @@map("chat_sessions")

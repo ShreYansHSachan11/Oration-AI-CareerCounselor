@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { MessageBubble } from './message-bubble';
 import { Spinner } from '@/components/ui/spinner';
 import { MessageSkeleton } from '@/components/ui/skeleton';
-import { VirtualScroll } from '@/components/ui/virtual-scroll';
-import { cn } from '@/utils/cn';
+import { ScrollButtons, NewMessageIndicator } from '@/components/ui/scroll-buttons';
+import { cn } from '@/lib/utils';
 import { MessageWithStatus } from '@/types/message';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/trpc/react';
+import { useScrollBehavior } from '@/hooks/use-scroll-behavior';
 
 interface OptimizedMessageListProps {
   sessionId: string;
@@ -19,7 +20,6 @@ interface OptimizedMessageListProps {
   containerHeight?: number;
 }
 
-const MESSAGE_HEIGHT = 120; // Estimated height per message
 const LOAD_MORE_THRESHOLD = 5; // Load more when 5 messages from top
 
 export function OptimizedMessageList({
@@ -30,9 +30,24 @@ export function OptimizedMessageList({
   className,
   containerHeight = 600,
 }: OptimizedMessageListProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScroll = useRef(true);
+  const [newMessageCount, setNewMessageCount] = useState(0);
   const lastMessageCount = useRef(0);
+  const lastScrollHeight = useRef(0);
+  
+  // Enhanced scroll behavior
+  const {
+    scrollRef,
+    isNearBottom,
+    showScrollToTop,
+    showScrollToBottom,
+    handleScroll,
+    scrollToBottom,
+    scrollToTop,
+    autoScrollToBottom,
+  } = useScrollBehavior({
+    threshold: 200,
+    autoScrollThreshold: 100,
+  });
 
   // Use infinite query for pagination
   const {
@@ -65,38 +80,77 @@ export function OptimizedMessageList({
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (
-      allMessages.length > lastMessageCount.current &&
-      shouldAutoScroll.current
-    ) {
-      const scrollElement = scrollRef.current;
-      if (scrollElement && 'scrollToBottom' in scrollElement) {
-        (scrollElement as any).scrollToBottom();
+    const currentMessageCount = allMessages.length;
+    const hasNewMessages = currentMessageCount > lastMessageCount.current;
+    
+    if (hasNewMessages) {
+      const newCount = currentMessageCount - lastMessageCount.current;
+      
+      if (isNearBottom) {
+        // Auto-scroll if user is near bottom
+        autoScrollToBottom();
+        setNewMessageCount(0);
+      } else {
+        // Show new message indicator if user is not near bottom
+        setNewMessageCount(prev => prev + newCount);
       }
     }
-    lastMessageCount.current = allMessages.length;
-  }, [allMessages.length]);
+    
+    lastMessageCount.current = currentMessageCount;
+  }, [allMessages.length, isNearBottom, autoScrollToBottom]);
+
+  // Reset new message count when user scrolls to bottom
+  useEffect(() => {
+    if (isNearBottom) {
+      setNewMessageCount(0);
+    }
+  }, [isNearBottom]);
 
   // Load more messages when scrolling to top
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      shouldAutoScroll.current = false; // Prevent auto-scroll when loading older messages
+      const scrollElement = scrollRef.current;
+      if (scrollElement) {
+        lastScrollHeight.current = scrollElement.scrollHeight;
+      }
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Reset auto-scroll when user scrolls to bottom
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    const isAtBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight < 50;
-    shouldAutoScroll.current = isAtBottom;
-  }, []);
+  // Maintain scroll position when loading older messages
+  useEffect(() => {
+    if (!isFetchingNextPage && lastScrollHeight.current > 0) {
+      const scrollElement = scrollRef.current;
+      if (scrollElement) {
+        const heightDifference = scrollElement.scrollHeight - lastScrollHeight.current;
+        if (heightDifference > 0) {
+          scrollElement.scrollTop += heightDifference;
+        }
+        lastScrollHeight.current = 0;
+      }
+    }
+  }, [isFetchingNextPage]);
+
+  const handleScrollToBottomWithNewMessages = useCallback(() => {
+    scrollToBottom();
+    setNewMessageCount(0);
+  }, [scrollToBottom]);
 
   const renderMessage = useCallback(
     (message: MessageWithStatus, index: number) => {
       return (
-        <div className="px-3 sm:px-4 py-2">
+        <motion.div
+          key={message.id}
+          layout
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{
+            duration: 0.3,
+            layout: { duration: 0.2 },
+          }}
+          className="px-3 sm:px-4 py-2"
+        >
           <MessageBubble
             message={message}
             isLastMessage={index === allMessages.length - 1}
@@ -110,29 +164,10 @@ export function OptimizedMessageList({
             }
             isRegenerating={isRegenerating && index === allMessages.length - 1}
           />
-        </div>
+        </motion.div>
       );
     },
     [allMessages.length, onRegenerateResponse, onDeleteMessage, isRegenerating]
-  );
-
-  const getMessageKey = useCallback(
-    (message: MessageWithStatus, index: number) => {
-      return message.id;
-    },
-    []
-  );
-
-  const loadingComponent = useMemo(
-    () => (
-      <div className="flex items-center justify-center py-4">
-        <Spinner className="h-6 w-6" />
-        <span className="ml-2 text-sm text-muted-foreground">
-          Loading messages...
-        </span>
-      </div>
-    ),
-    []
   );
 
   if (isLoading && allMessages.length === 0) {
@@ -222,34 +257,76 @@ export function OptimizedMessageList({
   return (
     <div className={cn('flex-1 relative', className)}>
       {/* Load more indicator at top */}
-      {isFetchingNextPage && (
-        <div className="absolute top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b">
-          <div className="flex items-center justify-center py-2">
-            <Spinner className="h-4 w-4 mr-2" />
-            <span className="text-sm text-muted-foreground">
-              Loading older messages...
-            </span>
-          </div>
-        </div>
-      )}
-
-      <VirtualScroll
-        ref={scrollRef}
-        items={allMessages}
-        itemHeight={MESSAGE_HEIGHT}
-        containerHeight={containerHeight}
-        renderItem={renderMessage}
-        getItemKey={getMessageKey}
-        onLoadMore={handleLoadMore}
-        hasMore={hasNextPage}
-        isLoading={isFetchingNextPage}
-        loadingComponent={loadingComponent}
-        overscan={3}
-        className={cn(
-          'overflow-y-auto overscroll-contain scroll-smooth webkit-overflow-scrolling-touch',
-          isFetchingNextPage && 'pt-12' // Add padding when loading indicator is shown
+      <AnimatePresence>
+        {isFetchingNextPage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm"
+          >
+            <div className="flex items-center justify-center py-3">
+              <Spinner className="h-4 w-4 mr-2" />
+              <span className="text-sm text-muted-foreground">
+                Loading older messages...
+              </span>
+            </div>
+          </motion.div>
         )}
-        onScroll={handleScroll}
+      </AnimatePresence>
+
+      {/* Messages container with improved scrolling */}
+      <div
+        ref={scrollRef}
+        className={cn(
+          'h-full overflow-y-auto overscroll-contain scroll-smooth',
+          'webkit-overflow-scrolling-touch scrollbar-thin scrollbar-thumb-muted',
+          'scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/20',
+          isFetchingNextPage && 'pt-16' // Add padding when loading indicator is shown
+        )}
+        style={{
+          height: containerHeight || '100%',
+          // Improve text rendering and scrolling performance
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth',
+          overflowAnchor: 'auto', // Prevent scroll jumping
+        }}
+        onScroll={(e) => {
+          handleScroll(e);
+          
+          // Load more when near top
+          const element = e.currentTarget;
+          if (element.scrollTop < 200 && hasNextPage && !isFetchingNextPage) {
+            handleLoadMore();
+          }
+        }}
+      >
+        <div className="min-h-full flex flex-col">
+          {/* Messages */}
+          <div className="flex-1 space-y-3 sm:space-y-4 py-4">
+            <AnimatePresence initial={false}>
+              {allMessages.map((message, index) => renderMessage(message, index))}
+            </AnimatePresence>
+          </div>
+          
+          {/* Bottom spacer for better UX */}
+          <div className="h-4" />
+        </div>
+      </div>
+
+      {/* Scroll buttons */}
+      <ScrollButtons
+        showScrollToTop={showScrollToTop}
+        showScrollToBottom={showScrollToBottom}
+        onScrollToTop={scrollToTop}
+        onScrollToBottom={scrollToBottom}
+      />
+
+      {/* New message indicator */}
+      <NewMessageIndicator
+        show={newMessageCount > 0}
+        messageCount={newMessageCount}
+        onScrollToBottom={handleScrollToBottomWithNewMessages}
       />
     </div>
   );

@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/cn';
 import { MessageStatus } from '@/types/message';
+import { motion } from 'framer-motion';
 
 interface MessageStatusIndicatorProps {
   status: MessageStatus;
@@ -19,13 +21,43 @@ export function MessageStatusIndicator({
   const getStatusIcon = () => {
     switch (status) {
       case 'sending':
-        return <Clock className="h-3 w-3 animate-pulse" />;
+        return (
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          >
+            <Clock className="h-3 w-3" />
+          </motion.div>
+        );
       case 'sent':
-        return <Check className="h-3 w-3" />;
+        return (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          >
+            <Check className="h-3 w-3" />
+          </motion.div>
+        );
       case 'delivered':
-        return <CheckCheck className="h-3 w-3" />;
+        return (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          >
+            <CheckCheck className="h-3 w-3" />
+          </motion.div>
+        );
       case 'error':
-        return <AlertCircle className="h-3 w-3" />;
+        return (
+          <motion.div
+            animate={{ x: [-2, 2, -2, 2, 0] }}
+            transition={{ duration: 0.5 }}
+          >
+            <AlertCircle className="h-3 w-3" />
+          </motion.div>
+        );
       default:
         return null;
     }
@@ -46,25 +78,29 @@ export function MessageStatusIndicator({
     }
   };
 
-  const getStatusColor = () => {
+  const getBadgeVariant = () => {
     switch (status) {
       case 'sending':
-        return 'text-muted-foreground';
+        return 'outline';
       case 'sent':
-        return 'text-muted-foreground';
+        return 'secondary';
       case 'delivered':
-        return 'text-green-600';
+        return 'success';
       case 'error':
-        return 'text-destructive';
+        return 'destructive';
       default:
-        return 'text-muted-foreground';
+        return 'outline';
     }
   };
 
   return (
-    <div className={cn('flex items-center gap-1', getStatusColor(), className)}>
+    <Badge 
+      variant={getBadgeVariant()} 
+      size="sm" 
+      className={cn('flex items-center gap-1.5 font-normal', className)}
+    >
       {getStatusIcon()}
       <span className="text-xs">{getStatusText()}</span>
-    </div>
+    </Badge>
   );
 }

@@ -167,7 +167,7 @@ export function AppIntegration({ children }: AppIntegrationProps) {
             ) : (
               <WelcomeScreen 
                 onNewChat={handleNewChat} 
-                isCreatingSession={createSessionMutation.isPending}
+                isCreatingSession={createSessionMutation.isLoading}
               />
             )}
           </div>

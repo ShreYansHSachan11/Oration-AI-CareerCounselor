@@ -8,7 +8,8 @@ import {
   messageRateLimiter,
   sessionRateLimiter,
   searchRateLimiter,
-  createRateLimitMiddleware,
+  checkRateLimit,
+  RateLimitError,
 } from '@/lib/rate-limit';
 import {
   sessionCache,
@@ -29,14 +30,22 @@ export const chatRouter = createTRPCRouter({
           .enum(['updatedAt', 'createdAt', 'title'])
           .default('updatedAt'),
         sortOrder: z.enum(['asc', 'desc']).default('desc'),
+        includeArchived: z.boolean().default(false),
       })
     )
     .use(async opts => {
       // Apply rate limiting
-      await sessionRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'getSessions'
-      );
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'getSessions');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .query(async ({ ctx, input }) => {
@@ -51,6 +60,7 @@ export const chatRouter = createTRPCRouter({
         search,
         sortBy,
         sortOrder,
+        includeArchived: input.includeArchived,
       });
     }),
 
@@ -65,10 +75,17 @@ export const chatRouter = createTRPCRouter({
     )
     .use(async opts => {
       // Apply rate limiting
-      await messageRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'getMessages'
-      );
+      try {
+        await checkRateLimit(messageRateLimiter, opts.ctx.session.user.id, 'getMessages');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .query(async ({ ctx, input }) => {
@@ -125,10 +142,17 @@ export const chatRouter = createTRPCRouter({
     )
     .use(async opts => {
       // Apply rate limiting for message sending
-      await messageRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'sendMessage'
-      );
+      try {
+        await checkRateLimit(messageRateLimiter, opts.ctx.session.user.id, 'sendMessage');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .mutation(async ({ ctx, input }) => {
@@ -251,10 +275,17 @@ export const chatRouter = createTRPCRouter({
     )
     .use(async opts => {
       // Apply rate limiting
-      await sessionRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'updateSession'
-      );
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'updateSession');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .mutation(async ({ ctx, input }) => {
@@ -291,10 +322,17 @@ export const chatRouter = createTRPCRouter({
     .input(z.object({ sessionId: z.string() }))
     .use(async opts => {
       // Apply rate limiting
-      await sessionRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'deleteSession'
-      );
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'deleteSession');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .mutation(async ({ ctx, input }) => {
@@ -318,6 +356,452 @@ export const chatRouter = createTRPCRouter({
       return { success: true };
     }),
 
+  // Bulk delete sessions
+  bulkDeleteSessions: protectedProcedure
+    .input(z.object({ sessionIds: z.array(z.string()).min(1).max(50) }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'bulkDeleteSessions');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .mutation(async ({ ctx, input }) => {
+      const { sessionIds } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify all sessions belong to the user
+      const sessions = await ctx.prisma.chatSession.findMany({
+        where: {
+          id: { in: sessionIds },
+          userId,
+        },
+        select: { id: true },
+      });
+
+      if (sessions.length !== sessionIds.length) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'One or more chat sessions not found',
+        });
+      }
+
+      // Delete all sessions
+      const result = await ctx.prisma.chatSession.deleteMany({
+        where: {
+          id: { in: sessionIds },
+          userId,
+        },
+      });
+
+      // Invalidate caches
+      sessionIds.forEach(sessionId => {
+        invalidateSessionCache(sessionId);
+      });
+      invalidateUserCache(userId);
+
+      return { 
+        success: true, 
+        deletedCount: result.count 
+      };
+    }),
+
+  // Archive session
+  archiveSession: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'archiveSession');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .mutation(async ({ ctx, input }) => {
+      const { sessionId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the session belongs to the user
+      const session = await ctx.prisma.chatSession.findFirst({
+        where: { id: sessionId, userId },
+      });
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Chat session not found',
+        });
+      }
+
+      // Archive the session
+      const archivedSession = await ctx.prisma.chatSession.update({
+        where: { id: sessionId },
+        data: {
+          isArchived: true,
+          archivedAt: new Date(),
+        },
+        include: {
+          _count: {
+            select: { messages: true },
+          },
+        },
+      });
+
+      // Invalidate caches
+      invalidateSessionCache(sessionId);
+      invalidateUserCache(userId);
+
+      return archivedSession;
+    }),
+
+  // Unarchive session
+  unarchiveSession: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'unarchiveSession');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .mutation(async ({ ctx, input }) => {
+      const { sessionId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the session belongs to the user
+      const session = await ctx.prisma.chatSession.findFirst({
+        where: { id: sessionId, userId },
+      });
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Chat session not found',
+        });
+      }
+
+      // Unarchive the session
+      const unarchivedSession = await ctx.prisma.chatSession.update({
+        where: { id: sessionId },
+        data: {
+          isArchived: false,
+          archivedAt: null,
+        },
+        include: {
+          _count: {
+            select: { messages: true },
+          },
+        },
+      });
+
+      // Invalidate caches
+      invalidateSessionCache(sessionId);
+      invalidateUserCache(userId);
+
+      return unarchivedSession;
+    }),
+
+  // Bulk archive sessions
+  bulkArchiveSessions: protectedProcedure
+    .input(z.object({ sessionIds: z.array(z.string()).min(1).max(50) }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'bulkArchiveSessions');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .mutation(async ({ ctx, input }) => {
+      const { sessionIds } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify all sessions belong to the user
+      const sessions = await ctx.prisma.chatSession.findMany({
+        where: {
+          id: { in: sessionIds },
+          userId,
+        },
+        select: { id: true },
+      });
+
+      if (sessions.length !== sessionIds.length) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'One or more chat sessions not found',
+        });
+      }
+
+      // Archive all sessions
+      const result = await ctx.prisma.chatSession.updateMany({
+        where: {
+          id: { in: sessionIds },
+          userId,
+        },
+        data: {
+          isArchived: true,
+          archivedAt: new Date(),
+        },
+      });
+
+      // Invalidate caches
+      sessionIds.forEach(sessionId => {
+        invalidateSessionCache(sessionId);
+      });
+      invalidateUserCache(userId);
+
+      return { 
+        success: true, 
+        archivedCount: result.count 
+      };
+    }),
+
+  // Bulk unarchive sessions
+  bulkUnarchiveSessions: protectedProcedure
+    .input(z.object({ sessionIds: z.array(z.string()).min(1).max(50) }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'bulkUnarchiveSessions');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .mutation(async ({ ctx, input }) => {
+      const { sessionIds } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify all sessions belong to the user
+      const sessions = await ctx.prisma.chatSession.findMany({
+        where: {
+          id: { in: sessionIds },
+          userId,
+        },
+        select: { id: true },
+      });
+
+      if (sessions.length !== sessionIds.length) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'One or more chat sessions not found',
+        });
+      }
+
+      // Unarchive all sessions
+      const result = await ctx.prisma.chatSession.updateMany({
+        where: {
+          id: { in: sessionIds },
+          userId,
+        },
+        data: {
+          isArchived: false,
+          archivedAt: null,
+        },
+      });
+
+      // Invalidate caches
+      sessionIds.forEach(sessionId => {
+        invalidateSessionCache(sessionId);
+      });
+      invalidateUserCache(userId);
+
+      return { 
+        success: true, 
+        unarchivedCount: result.count 
+      };
+    }),
+
+  // Export session data
+  exportSession: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'exportSession');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .query(async ({ ctx, input }) => {
+      const { sessionId } = input;
+      const userId = ctx.session.user.id;
+
+      // Get session with all messages
+      const session = await ctx.prisma.chatSession.findFirst({
+        where: { id: sessionId, userId },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'asc' },
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Chat session not found',
+        });
+      }
+
+      // Format export data
+      const exportData = {
+        session: {
+          id: session.id,
+          title: session.title || 'Untitled Chat',
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          isArchived: session.isArchived,
+          archivedAt: session.archivedAt,
+        },
+        user: {
+          name: session.user.name,
+          email: session.user.email,
+        },
+        messages: session.messages.map(message => ({
+          id: message.id,
+          content: message.content,
+          role: message.role,
+          createdAt: message.createdAt,
+        })),
+        exportedAt: new Date(),
+        messageCount: session.messages.length,
+      };
+
+      return exportData;
+    }),
+
+  // Export multiple sessions
+  exportSessions: protectedProcedure
+    .input(z.object({ 
+      sessionIds: z.array(z.string()).min(1).max(20),
+      includeArchived: z.boolean().default(false)
+    }))
+    .use(async opts => {
+      // Apply rate limiting
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'exportSessions');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
+      return opts.next();
+    })
+    .query(async ({ ctx, input }) => {
+      const { sessionIds, includeArchived } = input;
+      const userId = ctx.session.user.id;
+
+      // Get sessions with all messages
+      const sessions = await ctx.prisma.chatSession.findMany({
+        where: { 
+          id: { in: sessionIds }, 
+          userId,
+          ...(includeArchived ? {} : { isArchived: false })
+        },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'asc' },
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (sessions.length === 0) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'No chat sessions found',
+        });
+      }
+
+      // Format export data
+      const exportData = {
+        user: {
+          name: sessions[0].user.name,
+          email: sessions[0].user.email,
+        },
+        sessions: sessions.map(session => ({
+          id: session.id,
+          title: session.title || 'Untitled Chat',
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          isArchived: session.isArchived,
+          archivedAt: session.archivedAt,
+          messages: session.messages.map(message => ({
+            id: message.id,
+            content: message.content,
+            role: message.role,
+            createdAt: message.createdAt,
+          })),
+          messageCount: session.messages.length,
+        })),
+        exportedAt: new Date(),
+        totalSessions: sessions.length,
+        totalMessages: sessions.reduce((sum, session) => sum + session.messages.length, 0),
+      };
+
+      return exportData;
+    }),
+
   // Search sessions and messages
   searchSessions: protectedProcedure
     .input(
@@ -330,10 +814,17 @@ export const chatRouter = createTRPCRouter({
     )
     .use(async opts => {
       // Apply rate limiting for search
-      await searchRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'searchSessions'
-      );
+      try {
+        await checkRateLimit(searchRateLimiter, opts.ctx.session.user.id, 'searchSessions');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .query(async ({ ctx, input }) => {
@@ -486,10 +977,17 @@ export const chatRouter = createTRPCRouter({
   getSessionStats: protectedProcedure
     .use(async opts => {
       // Apply rate limiting
-      await sessionRateLimiter.checkLimit(
-        opts.ctx.session.user.id,
-        'getSessionStats'
-      );
+      try {
+        await checkRateLimit(sessionRateLimiter, opts.ctx.session.user.id, 'getSessionStats');
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: error.message,
+          });
+        }
+        throw error;
+      }
       return opts.next();
     })
     .query(async ({ ctx }) => {

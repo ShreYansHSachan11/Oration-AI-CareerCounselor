@@ -21,6 +21,7 @@ export class OptimizedQueries {
       search?: string;
       sortBy?: 'updatedAt' | 'createdAt' | 'title';
       sortOrder?: 'asc' | 'desc';
+      includeArchived?: boolean;
     } = {}
   ) {
     const {
@@ -29,15 +30,19 @@ export class OptimizedQueries {
       search,
       sortBy = 'updatedAt',
       sortOrder = 'desc',
+      includeArchived = false,
     } = options;
 
-    const cacheKey = cacheKeys.userSessions(userId, limit, search);
+    const cacheKey = cacheKeys.userSessions(userId, limit, search, includeArchived);
 
     return withCache(
       cacheKey,
       async () => {
         // Build optimized where clause
-        const whereClause: any = { userId };
+        const whereClause: any = { 
+          userId,
+          ...(includeArchived ? {} : { isArchived: false })
+        };
 
         if (search) {
           whereClause.OR = [
@@ -71,6 +76,8 @@ export class OptimizedQueries {
             title: true,
             createdAt: true,
             updatedAt: true,
+            isArchived: true,
+            archivedAt: true,
             _count: {
               select: { messages: true },
             },

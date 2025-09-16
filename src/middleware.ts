@@ -1,21 +1,46 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { ipRateLimiter, getClientIP } from '@/lib/rate-limit';
+import { ipRateLimiter, getClientIP, RateLimitError } from '@/lib/edge-rate-limit';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Apply rate limiting to API routes
-  if (pathname.startsWith('/api/')) {
+  // Skip rate limiting for auth routes to avoid OAuth issues
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
     try {
       const clientIP = getClientIP(request);
       await ipRateLimiter.checkLimit(clientIP);
-    } catch (error: any) {
+    } catch (error) {
+      if (error instanceof RateLimitError) {
+        return NextResponse.json(
+          { 
+            error: error.message,
+            resetTime: error.resetTime 
+          },
+          { 
+            status: 429,
+            headers: {
+              'Retry-After': Math.ceil((error.resetTime - Date.now()) / 1000).toString(),
+            }
+          }
+        );
+      }
+      
       return NextResponse.json(
-        { error: error.message || 'Rate limit exceeded' },
+        { error: 'Rate limit exceeded' },
         { status: 429 }
       );
     }
+  }
+
+  // Special handling for auth routes
+  if (pathname.startsWith('/api/auth/')) {
+    const response = NextResponse.next();
+    // Add CORS headers for auth routes
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
   }
 
   // Add performance headers for static assets

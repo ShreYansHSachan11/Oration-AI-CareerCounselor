@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MessageBubble } from './message-bubble';
 import { Spinner } from '@/components/ui/spinner';
 import { MessageSkeleton } from '@/components/ui/skeleton';
-import { cn } from '@/utils/cn';
+import { ScrollButtons, NewMessageIndicator } from '@/components/ui/scroll-buttons';
+import { cn } from '@/lib/utils';
 import { MessageWithStatus } from '@/types/message';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useScrollBehavior } from '@/hooks/use-scroll-behavior';
 
 interface MessageListProps {
   messages: MessageWithStatus[];
@@ -25,19 +27,56 @@ export function MessageList({
   isRegenerating,
   className,
 }: MessageListProps) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [newMessageCount, setNewMessageCount] = useState(0);
+  const lastMessageCount = useRef(0);
+
+  // Enhanced scroll behavior
+  const {
+    scrollRef,
+    isNearBottom,
+    showScrollToTop,
+    showScrollToBottom,
+    handleScroll,
+    scrollToBottom,
+    scrollToTop,
+    autoScrollToBottom,
+  } = useScrollBehavior({
+    threshold: 200,
+    autoScrollThreshold: 100,
+  });
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-
+    const currentMessageCount = messages.length;
+    const hasNewMessages = currentMessageCount > lastMessageCount.current;
+    
+    if (hasNewMessages) {
+      const newCount = currentMessageCount - lastMessageCount.current;
+      
       if (isNearBottom) {
-        scrollAreaRef.current.scrollTop = scrollHeight;
+        // Auto-scroll if user is near bottom
+        autoScrollToBottom();
+        setNewMessageCount(0);
+      } else {
+        // Show new message indicator if user is not near bottom
+        setNewMessageCount(prev => prev + newCount);
       }
     }
-  }, [messages]);
+    
+    lastMessageCount.current = currentMessageCount;
+  }, [messages.length, isNearBottom, autoScrollToBottom]);
+
+  // Reset new message count when user scrolls to bottom
+  useEffect(() => {
+    if (isNearBottom) {
+      setNewMessageCount(0);
+    }
+  }, [isNearBottom]);
+
+  const handleScrollToBottomWithNewMessages = () => {
+    scrollToBottom();
+    setNewMessageCount(0);
+  };
 
   if (isLoading && messages.length === 0) {
     return (
@@ -111,48 +150,76 @@ export function MessageList({
   }
 
   return (
-    <div
-      ref={scrollAreaRef}
-      className={cn(
-        'flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3 sm:space-y-4',
-        'scroll-smooth webkit-overflow-scrolling-touch', // Better mobile scrolling
-        className
-      )}
-      style={{
-        // Improve scrolling performance on mobile
-        WebkitOverflowScrolling: 'touch',
-        scrollBehavior: 'smooth',
-      }}
-    >
-      <AnimatePresence initial={false}>
-        {messages.map((message, index) => (
-          <motion.div
-            key={message.id}
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{
-              duration: 0.3,
-              layout: { duration: 0.2 },
-            }}
-          >
-            <MessageBubble
-              message={message}
-              isLastMessage={index === messages.length - 1}
-              onRegenerate={
-                message.role === 'ASSISTANT' && onRegenerateResponse
-                  ? () => onRegenerateResponse(message.id)
-                  : undefined
-              }
-              onDelete={
-                onDeleteMessage ? () => onDeleteMessage(message.id) : undefined
-              }
-              isRegenerating={isRegenerating && index === messages.length - 1}
-            />
-          </motion.div>
-        ))}
-      </AnimatePresence>
+    <div className={cn('flex-1 relative', className)}>
+      {/* Messages container with improved scrolling */}
+      <div
+        ref={scrollRef}
+        className={cn(
+          'h-full overflow-y-auto overscroll-contain scroll-smooth',
+          'webkit-overflow-scrolling-touch scrollbar-thin scrollbar-thumb-muted',
+          'scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/20'
+        )}
+        style={{
+          // Improve text rendering and scrolling performance
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth',
+          overflowAnchor: 'auto', // Prevent scroll jumping
+        }}
+        onScroll={handleScroll}
+      >
+        <div className="min-h-full flex flex-col">
+          {/* Messages */}
+          <div className="flex-1 space-y-3 sm:space-y-4 p-3 sm:p-4">
+            <AnimatePresence initial={false}>
+              {messages.map((message, index) => (
+                <motion.div
+                  key={message.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  transition={{
+                    duration: 0.3,
+                    layout: { duration: 0.2 },
+                  }}
+                >
+                  <MessageBubble
+                    message={message}
+                    isLastMessage={index === messages.length - 1}
+                    onRegenerate={
+                      message.role === 'ASSISTANT' && onRegenerateResponse
+                        ? () => onRegenerateResponse(message.id)
+                        : undefined
+                    }
+                    onDelete={
+                      onDeleteMessage ? () => onDeleteMessage(message.id) : undefined
+                    }
+                    isRegenerating={isRegenerating && index === messages.length - 1}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          
+          {/* Bottom spacer for better UX */}
+          <div className="h-4" />
+        </div>
+      </div>
+
+      {/* Scroll buttons */}
+      <ScrollButtons
+        showScrollToTop={showScrollToTop}
+        showScrollToBottom={showScrollToBottom}
+        onScrollToTop={scrollToTop}
+        onScrollToBottom={scrollToBottom}
+      />
+
+      {/* New message indicator */}
+      <NewMessageIndicator
+        show={newMessageCount > 0}
+        messageCount={newMessageCount}
+        onScrollToBottom={handleScrollToBottomWithNewMessages}
+      />
     </div>
   );
 }
