@@ -128,8 +128,8 @@ export function FloatingActionButton({
     <motion.button
       onClick={onClick}
       className={cn(
-        'fixed bottom-6 right-6 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg',
-        'flex items-center justify-center z-50',
+        'fixed bottom-6 right-6 w-14 h-14 gradient-primary text-primary-foreground rounded-full shadow-large hover:shadow-xl',
+        'flex items-center justify-center z-50 btn-modern hover-lift',
         className
       )}
       whileHover={{ scale: 1.1 }}
@@ -265,10 +265,10 @@ export function NotificationToast({
   onClose,
 }: NotificationToastProps) {
   const typeStyles = {
-    success: 'bg-green-500 text-white',
-    error: 'bg-red-500 text-white',
-    warning: 'bg-yellow-500 text-black',
-    info: 'bg-blue-500 text-white',
+    success: 'gradient-success text-foreground shadow-large',
+    error: 'gradient-danger text-white shadow-large',
+    warning: 'gradient-warning text-foreground shadow-large',
+    info: 'gradient-primary text-primary-foreground shadow-large',
   };
 
   React.useEffect(() => {
@@ -351,7 +351,7 @@ export function ScrollToTopButton() {
       {isVisible && (
         <motion.button
           onClick={scrollToTop}
-          className="fixed bottom-20 right-6 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center z-40"
+          className="fixed bottom-20 right-6 w-12 h-12 gradient-primary text-primary-foreground rounded-full shadow-large hover:shadow-xl flex items-center justify-center z-40 btn-modern hover-lift"
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0 }}

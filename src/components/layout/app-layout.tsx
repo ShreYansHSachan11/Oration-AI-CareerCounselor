@@ -10,6 +10,8 @@ interface AppLayoutProps {
   sidebar?: React.ReactNode;
   className?: string;
   onSwipeRight?: () => void;
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export function AppLayout({
@@ -17,15 +19,24 @@ export function AppLayout({
   sidebar,
   className,
   onSwipeRight,
+  sidebarCollapsed = false,
+  onToggleSidebar,
 }: AppLayoutProps) {
   return (
     <div className={cn('h-screen overflow-hidden relative', className)}>
-      {/* Modern gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(102,126,234,0.1),transparent_50%)]" />
+      {/* Monochromatic gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-black dark:via-gray-900 dark:to-gray-800" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0.05),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_50%)]" />
+      <div className="absolute inset-0 animated-gradient opacity-5" />
       
       <MobileGestureHandler onSwipeRight={onSwipeRight} className="h-full relative z-10">
-        <MobileNavigation sidebarContent={sidebar}>{children}</MobileNavigation>
+        <MobileNavigation 
+          sidebarContent={sidebar}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={onToggleSidebar}
+        >
+          {children}
+        </MobileNavigation>
       </MobileGestureHandler>
     </div>
   );

@@ -101,8 +101,8 @@ export const searchCache = new MemoryCache(300); // Cache for search results
 
 // Cache key generators
 export const cacheKeys = {
-  userSessions: (userId: string, limit: number, search?: string, includeArchived?: boolean) =>
-    `user:${userId}:sessions:${limit}:${search || 'all'}:${includeArchived ? 'archived' : 'active'}`,
+  userSessions: (userId: string, limit: number, search?: string, includeArchived?: boolean, includeLatestMessage?: boolean) =>
+    `user:${userId}:sessions:${limit}:${search || 'all'}:${includeArchived ? 'archived' : 'active'}:${includeLatestMessage ? 'with-preview' : 'no-preview'}`,
 
   sessionMessages: (sessionId: string, limit: number, cursor?: string) =>
     `session:${sessionId}:messages:${limit}:${cursor || 'start'}`,

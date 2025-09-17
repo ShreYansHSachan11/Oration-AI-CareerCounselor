@@ -8,12 +8,43 @@ export interface ChatMessage extends Message {
   content: string;
   role: MessageRole;
   sessionId: string;
+  isBookmarked: boolean;
+  isEdited: boolean;
+  editedAt: Date | null;
+  readAt: Date | null;
   createdAt: Date;
 }
 
 export interface MessageWithStatus extends ChatMessage {
   status?: 'sending' | 'sent' | 'delivered' | 'error';
   isOptimistic?: boolean;
+  reactions?: MessageReaction[];
+}
+
+/**
+ * Message reaction types
+ */
+export interface MessageReaction {
+  id: string;
+  messageId: string;
+  userId: string;
+  emoji: string;
+  createdAt: Date;
+  user?: {
+    name: string | null;
+    image: string | null;
+  };
+}
+
+export interface ReactionSummary {
+  emoji: string;
+  count: number;
+  userReacted: boolean;
+  users: Array<{
+    id: string;
+    name: string | null;
+    image: string | null;
+  }>;
 }
 
 /**
@@ -151,6 +182,11 @@ export interface ExportedMessage {
   content: string;
   role: string;
   timestamp: string;
+  isBookmarked?: boolean;
+  reactions?: Array<{
+    emoji: string;
+    user: string;
+  }>;
 }
 
 export interface ExportedConversation {
@@ -158,4 +194,75 @@ export interface ExportedConversation {
   title: string | null;
   messages: ExportedMessage[];
   exportedAt: string;
+}
+
+/**
+ * Rich text formatting types
+ */
+export interface RichTextFormat {
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  code?: boolean;
+  link?: {
+    url: string;
+    text: string;
+  };
+}
+
+export interface FormattedTextSegment {
+  text: string;
+  format?: RichTextFormat;
+}
+
+export interface RichTextContent {
+  segments: FormattedTextSegment[];
+  plainText: string;
+}
+
+/**
+ * Message editing types
+ */
+export interface MessageEdit {
+  messageId: string;
+  newContent: string;
+  editReason?: string;
+}
+
+export interface MessageEditHistory {
+  id: string;
+  messageId: string;
+  previousContent: string;
+  newContent: string;
+  editedAt: Date;
+  editReason?: string;
+}
+
+/**
+ * Typing indicator types
+ */
+export interface TypingUser {
+  id: string;
+  name: string | null;
+  image: string | null;
+}
+
+export interface TypingIndicatorData {
+  sessionId: string;
+  users: TypingUser[];
+  timestamp: Date;
+}
+
+/**
+ * Read receipt types
+ */
+export interface ReadReceipt {
+  messageId: string;
+  userId: string;
+  readAt: Date;
+  user?: {
+    name: string | null;
+    image: string | null;
+  };
 }

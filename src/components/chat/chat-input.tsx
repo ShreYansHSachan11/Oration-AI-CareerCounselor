@@ -1,17 +1,25 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Loader2 } from 'lucide-react';
+import { Send, Paperclip, Loader2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RichTextEditor } from './rich-text-editor';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface RichTextContent {
+  plainText: string;
+  formattedText: string;
+  hasFormatting: boolean;
+}
+
 interface ChatInputProps {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, richContent?: RichTextContent) => void;
   isLoading?: boolean;
   disabled?: boolean;
   placeholder?: string;
   maxLength?: number;
+  enableRichText?: boolean;
   className?: string;
 }
 
@@ -21,9 +29,11 @@ export function ChatInput({
   disabled = false,
   placeholder = 'Type your message...',
   maxLength = 4000,
+  enableRichText = false,
   className,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const [useRichText, setUseRichText] = useState(enableRichText);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -49,6 +59,11 @@ export function ChatInput({
     }
   };
 
+  const handleRichTextSend = (content: string, richContent?: RichTextContent) => {
+    if (!content.trim() || isLoading || disabled) return;
+    onSendMessage(content, richContent);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -66,6 +81,31 @@ export function ChatInput({
   const canSend = message.trim().length > 0 && !isLoading && !disabled;
   const characterCount = message.length;
   const isNearLimit = characterCount > maxLength * 0.8;
+
+  if (useRichText) {
+    return (
+      <div className={cn('w-full', className)}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Rich text mode</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setUseRichText(false)}
+            className="h-6 text-xs"
+          >
+            Switch to simple
+          </Button>
+        </div>
+        <RichTextEditor
+          onSendMessage={handleRichTextSend}
+          isLoading={isLoading}
+          disabled={disabled}
+          placeholder={placeholder}
+          maxLength={maxLength}
+        />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -108,6 +148,20 @@ export function ChatInput({
             autoCapitalize="sentences"
             spellCheck="true"
           />
+
+          {/* Rich Text Toggle */}
+          {enableRichText && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setUseRichText(true)}
+              className="flex-shrink-0 h-8 w-8"
+              title="Enable rich text formatting"
+            >
+              <Type className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Send Button */}
           <motion.div
@@ -178,6 +232,16 @@ export function ChatInput({
                 </>
               )}
             </motion.span>
+            {enableRichText && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setUseRichText(true)}
+                className="h-5 text-xs opacity-60 hover:opacity-100"
+              >
+                Enable formatting
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">

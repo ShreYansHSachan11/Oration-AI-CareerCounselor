@@ -3,20 +3,25 @@ import { cn } from '@/utils/cn';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const cardVariants = cva(
-  'rounded-2xl bg-card text-card-foreground transition-all duration-200',
+  'rounded-2xl bg-card text-card-foreground transition-all duration-300',
   {
     variants: {
       variant: {
-        default: 'border border-border/50 shadow-soft hover:shadow-medium',
-        elevated: 'shadow-medium hover:shadow-large hover-lift',
-        glass: 'glass border-white/20 dark:border-white/10',
-        gradient: 'gradient-primary text-white shadow-large',
-        outline: 'border-2 border-primary/20 bg-background/50 backdrop-blur-sm',
+        default: 'border border-border/50 shadow-soft hover:shadow-medium hover-lift',
+        elevated: 'shadow-medium hover:shadow-large hover-lift hover-scale',
+        glass: 'glass border-border/20 hover:border-border/30',
+        'glass-strong': 'glass-strong border-border/10 hover:border-border/20',
+        gradient: 'gradient-primary text-primary-foreground shadow-large hover:shadow-xl',
+        outline: 'border-2 border-border bg-background/50 backdrop-blur-sm hover:bg-background/70',
+        monochrome: 'bg-foreground text-background shadow-medium hover:shadow-large hover-lift',
+        'monochrome-outline': 'border-2 border-foreground bg-background hover:bg-foreground/5 shadow-soft hover:shadow-medium',
+        subtle: 'bg-muted/30 border border-muted-foreground/10 hover:bg-muted/50 shadow-soft hover:shadow-medium',
       },
       padding: {
         default: 'p-6',
         sm: 'p-4',
         lg: 'p-8',
+        xl: 'p-10',
         none: 'p-0',
       },
     },

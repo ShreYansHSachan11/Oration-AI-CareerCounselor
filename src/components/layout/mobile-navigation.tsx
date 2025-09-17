@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Menu,
   X,
@@ -8,12 +8,13 @@ import {
   User,
   Settings,
   ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { UserMenu } from '@/components/auth/user-menu';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface MobileNavigationProps {
@@ -23,6 +24,8 @@ interface MobileNavigationProps {
   title?: string;
   showBackButton?: boolean;
   onBack?: () => void;
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export function MobileNavigation({
@@ -32,11 +35,15 @@ export function MobileNavigation({
   title,
   showBackButton = false,
   onBack,
+  sidebarCollapsed = false,
+  onToggleSidebar,
 }: MobileNavigationProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Handle orientation changes
   useEffect(() => {
@@ -89,6 +96,43 @@ export function MobileNavigation({
       router.back();
     }
   };
+
+  // Enhanced swipe gesture handling
+  const handlePanStart = useCallback(() => {
+    setDragOffset(0);
+  }, []);
+
+  const handlePan = useCallback((event: any, info: PanInfo) => {
+    const { offset } = info;
+    
+    // Only allow opening gesture from left edge
+    if (!isSidebarOpen && offset.x > 0 && offset.x < 200) {
+      setDragOffset(offset.x);
+    }
+    // Allow closing gesture when sidebar is open
+    else if (isSidebarOpen && offset.x < 0 && offset.x > -200) {
+      setDragOffset(offset.x);
+    }
+  }, [isSidebarOpen]);
+
+  const handlePanEnd = useCallback((event: any, info: PanInfo) => {
+    const { offset, velocity } = info;
+    const threshold = 100;
+    const velocityThreshold = 500;
+
+    // Determine if we should open/close based on distance and velocity
+    if (!isSidebarOpen) {
+      if (offset.x > threshold || velocity.x > velocityThreshold) {
+        setIsSidebarOpen(true);
+      }
+    } else {
+      if (offset.x < -threshold || velocity.x < -velocityThreshold) {
+        setIsSidebarOpen(false);
+      }
+    }
+    
+    setDragOffset(0);
+  }, [isSidebarOpen]);
 
   return (
     <div className={cn('flex flex-col h-screen bg-background', className)}>
@@ -155,7 +199,10 @@ export function MobileNavigation({
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:border-r">
+        <aside className={cn(
+          "hidden lg:flex lg:flex-col lg:border-r transition-all duration-300",
+          sidebarCollapsed ? "lg:w-16" : "lg:w-80"
+        )}>
           {sidebarContent}
         </aside>
 
@@ -175,27 +222,28 @@ export function MobileNavigation({
 
               {/* Sidebar */}
               <motion.aside
+                ref={sidebarRef}
                 className={cn(
-                  'fixed left-0 top-0 h-full bg-background border-r z-50 lg:hidden safe-area-inset-top',
+                  'fixed left-0 top-0 h-full bg-background/95 backdrop-blur-xl border-r z-50 lg:hidden safe-area-inset-top shadow-2xl',
                   isLandscape ? 'w-72 max-w-[75vw]' : 'w-80 max-w-[85vw]'
                 )}
                 initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
+                animate={{ 
+                  x: dragOffset || 0,
+                }}
                 exit={{ x: '-100%' }}
                 transition={{
                   type: 'spring',
-                  damping: 30,
-                  stiffness: 300,
-                  mass: 0.8,
+                  damping: 35,
+                  stiffness: 400,
+                  mass: 0.6,
                 }}
                 drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.1}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -100) {
-                    closeSidebar();
-                  }
-                }}
+                dragConstraints={{ left: -50, right: 50 }}
+                dragElastic={0.2}
+                onPanStart={handlePanStart}
+                onPan={handlePan}
+                onPanEnd={handlePanEnd}
               >
                 {/* Mobile Sidebar Header */}
                 <div
@@ -241,8 +289,15 @@ export function MobileNavigation({
           )}
         </AnimatePresence>
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+        {/* Main Content with swipe gesture detection */}
+        <motion.main 
+          className="flex-1 flex flex-col overflow-hidden"
+          onPanStart={handlePanStart}
+          onPan={handlePan}
+          onPanEnd={handlePanEnd}
+        >
+          {children}
+        </motion.main>
       </div>
     </div>
   );

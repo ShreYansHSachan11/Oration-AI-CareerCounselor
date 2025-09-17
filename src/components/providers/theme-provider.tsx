@@ -88,47 +88,57 @@ export function ThemeProvider({
     // Add current theme class
     root.classList.add(resolvedTheme);
 
-    // Update CSS custom properties for theme with modern colors
+    // Update CSS custom properties for monochromatic black and white theme
     if (resolvedTheme === 'dark') {
-      root.style.setProperty('--background', '#0f0f23');
-      root.style.setProperty('--foreground', '#f8fafc');
-      root.style.setProperty('--card', '#1a1a2e');
-      root.style.setProperty('--card-foreground', '#f8fafc');
-      root.style.setProperty('--popover', '#1a1a2e');
-      root.style.setProperty('--popover-foreground', '#f8fafc');
-      root.style.setProperty('--primary', '#667eea');
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', '#16213e');
-      root.style.setProperty('--secondary-foreground', '#e2e8f0');
-      root.style.setProperty('--muted', '#16213e');
-      root.style.setProperty('--muted-foreground', '#94a3b8');
-      root.style.setProperty('--accent', '#1e293b');
-      root.style.setProperty('--accent-foreground', '#f1f5f9');
-      root.style.setProperty('--destructive', '#ff6b6b');
+      // Sleek dark theme with black backgrounds and white accents
+      root.style.setProperty('--background', '#000000');
+      root.style.setProperty('--foreground', '#ffffff');
+      root.style.setProperty('--card', '#0a0a0a');
+      root.style.setProperty('--card-foreground', '#ffffff');
+      root.style.setProperty('--popover', '#0a0a0a');
+      root.style.setProperty('--popover-foreground', '#ffffff');
+      root.style.setProperty('--primary', '#ffffff');
+      root.style.setProperty('--primary-foreground', '#000000');
+      root.style.setProperty('--secondary', '#1a1a1a');
+      root.style.setProperty('--secondary-foreground', '#e5e5e5');
+      root.style.setProperty('--muted', '#1a1a1a');
+      root.style.setProperty('--muted-foreground', '#a3a3a3');
+      root.style.setProperty('--accent', '#262626');
+      root.style.setProperty('--accent-foreground', '#f5f5f5');
+      root.style.setProperty('--destructive', '#404040');
       root.style.setProperty('--destructive-foreground', '#ffffff');
-      root.style.setProperty('--border', '#334155');
-      root.style.setProperty('--input', '#334155');
-      root.style.setProperty('--ring', '#667eea');
+      root.style.setProperty('--border', '#404040');
+      root.style.setProperty('--input', '#262626');
+      root.style.setProperty('--ring', '#ffffff');
+      root.style.setProperty('--success', '#737373');
+      root.style.setProperty('--success-foreground', '#ffffff');
+      root.style.setProperty('--warning', '#525252');
+      root.style.setProperty('--warning-foreground', '#ffffff');
     } else {
-      root.style.setProperty('--background', '#fefefe');
-      root.style.setProperty('--foreground', '#1a202c');
-      root.style.setProperty('--card', '#ffffff');
-      root.style.setProperty('--card-foreground', '#1a202c');
+      // Elegant light theme with white backgrounds and black accents
+      root.style.setProperty('--background', '#ffffff');
+      root.style.setProperty('--foreground', '#000000');
+      root.style.setProperty('--card', '#fafafa');
+      root.style.setProperty('--card-foreground', '#000000');
       root.style.setProperty('--popover', '#ffffff');
-      root.style.setProperty('--popover-foreground', '#1a202c');
-      root.style.setProperty('--primary', '#667eea');
+      root.style.setProperty('--popover-foreground', '#000000');
+      root.style.setProperty('--primary', '#000000');
       root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', '#f7fafc');
-      root.style.setProperty('--secondary-foreground', '#2d3748');
-      root.style.setProperty('--muted', '#f7fafc');
-      root.style.setProperty('--muted-foreground', '#718096');
-      root.style.setProperty('--accent', '#edf2f7');
-      root.style.setProperty('--accent-foreground', '#2d3748');
-      root.style.setProperty('--destructive', '#ff6b6b');
-      root.style.setProperty('--destructive-foreground', '#ffffff');
-      root.style.setProperty('--border', '#e2e8f0');
-      root.style.setProperty('--input', '#e2e8f0');
-      root.style.setProperty('--ring', '#667eea');
+      root.style.setProperty('--secondary', '#f5f5f5');
+      root.style.setProperty('--secondary-foreground', '#262626');
+      root.style.setProperty('--muted', '#f5f5f5');
+      root.style.setProperty('--muted-foreground', '#737373');
+      root.style.setProperty('--accent', '#e5e5e5');
+      root.style.setProperty('--accent-foreground', '#0a0a0a');
+      root.style.setProperty('--destructive', '#d4d4d4');
+      root.style.setProperty('--destructive-foreground', '#000000');
+      root.style.setProperty('--border', '#e5e5e5');
+      root.style.setProperty('--input', '#f5f5f5');
+      root.style.setProperty('--ring', '#000000');
+      root.style.setProperty('--success', '#a3a3a3');
+      root.style.setProperty('--success-foreground', '#000000');
+      root.style.setProperty('--warning', '#d4d4d4');
+      root.style.setProperty('--warning-foreground', '#000000');
     }
   }, [resolvedTheme, mounted]);
 

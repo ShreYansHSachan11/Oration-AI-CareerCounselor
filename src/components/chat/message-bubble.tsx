@@ -1,15 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, Bot, Copy, RotateCcw, Trash2, Check, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { User, Bot, Sparkles, Edit3 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { MessageStatusIndicator } from './message-status-indicator';
+import { MessageActions } from './message-actions';
+import { MessageReactions } from './message-reactions';
+import { ReadReceipts } from './read-receipts';
 import { cn } from '@/lib/utils';
-import { MessageWithStatus } from '@/types/message';
+import { MessageWithStatus, ReactionSummary } from '@/types/message';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,7 +22,13 @@ interface MessageBubbleProps {
   isLastMessage?: boolean;
   onRegenerate?: () => void;
   onDelete?: () => void;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onAddReaction?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string) => void;
+  onToggleBookmark?: (messageId: string) => void;
+  onMarkAsRead?: (messageId: string) => void;
   isRegenerating?: boolean;
+  reactions?: ReactionSummary[];
 }
 
 export function MessageBubble({
@@ -26,21 +36,52 @@ export function MessageBubble({
   isLastMessage,
   onRegenerate,
   onDelete,
+  onEdit,
+  onAddReaction,
+  onRemoveReaction,
+  onToggleBookmark,
+  onMarkAsRead,
   isRegenerating,
+  reactions = [],
 }: MessageBubbleProps) {
   const [showActions, setShowActions] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
 
   const isUser = message.role === 'USER';
   const isAssistant = message.role === 'ASSISTANT';
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy message:', error);
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (onEdit && editContent.trim() !== message.content) {
+      onEdit(message.id, editContent.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditContent(message.content);
+    setIsEditing(false);
+  };
+
+  const handleAddReaction = (emoji: string) => {
+    if (onAddReaction) {
+      onAddReaction(message.id, emoji);
+    }
+  };
+
+  const handleRemoveReaction = () => {
+    if (onRemoveReaction) {
+      onRemoveReaction(message.id);
+    }
+  };
+
+  const handleToggleBookmark = () => {
+    if (onToggleBookmark) {
+      onToggleBookmark(message.id);
     }
   };
 
@@ -79,12 +120,12 @@ export function MessageBubble({
           transition={{ delay: 0.2, duration: 0.4, type: "spring" }}
         >
           <Avatar size="default" variant="gradient" className="shadow-large hover-glow">
-            <AvatarFallback className="gradient-primary text-white">
+            <AvatarFallback className="gradient-primary text-primary-foreground">
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 icon-monochrome" />
               </motion.div>
             </AvatarFallback>
           </Avatar>
@@ -117,17 +158,17 @@ export function MessageBubble({
           whileTap={{ scale: 0.98 }}
         >
           <Card
-            variant={isUser ? "gradient" : "glass"}
+            variant={isUser ? "monochrome" : "glass-strong"}
             padding="default"
             className={cn(
               'relative transition-all duration-300 touch-manipulation overflow-hidden',
-              'shadow-medium hover:shadow-large min-h-0',
+              'shadow-medium hover:shadow-large min-h-0 hover-lift',
               isUser
-                ? 'ml-6 sm:ml-8 md:ml-12 gradient-primary text-white'
-                : 'mr-6 sm:mr-8 md:mr-12 glass backdrop-blur-xl border-white/20 dark:border-white/10',
+                ? 'ml-6 sm:ml-8 md:ml-12 bg-foreground text-background'
+                : 'mr-6 sm:mr-8 md:mr-12 glass-strong backdrop-blur-xl',
               message.isOptimistic && 'opacity-70 pulse-modern',
               isRegenerating && 'opacity-50',
-              'before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700'
+              'before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-foreground/5 before:to-transparent before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700'
             )}
             style={{
               wordWrap: 'break-word',
@@ -156,102 +197,95 @@ export function MessageBubble({
               )}
             </AnimatePresence>
 
-            {/* Message text */}
-            <div className={cn(
-              'whitespace-pre-wrap break-words select-text relative z-10',
-              'text-sm sm:text-base leading-relaxed font-medium',
-              'max-w-none overflow-wrap-anywhere',
-              'hyphens-auto tracking-wide',
-              isUser ? 'text-white' : 'text-foreground/90'
-            )}>
-              {message.content}
-            </div>
+            {/* Message text or edit input */}
+            {isEditing ? (
+              <div className="space-y-2 relative z-10">
+                <Input
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className={cn(
+                    "border-border/30 backdrop-blur-sm",
+                    isUser 
+                      ? "bg-background/20 text-background placeholder:text-background/60" 
+                      : "bg-foreground/10 text-foreground placeholder:text-foreground/60"
+                  )}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSaveEdit();
+                    } else if (e.key === 'Escape') {
+                      handleCancelEdit();
+                    }
+                  }}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={isUser ? "monochrome-outline" : "monochrome"}
+                    onClick={handleSaveEdit}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className={cn(
+                'whitespace-pre-wrap break-words select-text relative z-10',
+                'text-sm sm:text-base leading-relaxed font-medium',
+                'max-w-none overflow-wrap-anywhere',
+                'hyphens-auto tracking-wide',
+                isUser ? 'text-background' : 'text-foreground/90'
+              )}>
+                {message.content}
+                {message.isEdited && (
+                  <Badge variant="outline" className="ml-2 text-xs opacity-70">
+                    edited
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Actions overlay */}
-            <AnimatePresence>
-              {(showActions || isLastMessage) &&
-                !message.isOptimistic &&
-                !isRegenerating && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 5 }}
-                    transition={{ duration: 0.2, type: "spring" }}
-                    className="absolute -top-3 right-2 flex items-center gap-1 glass rounded-xl shadow-large border-white/20"
-                  >
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation hover:bg-white/20 dark:hover:bg-black/20 backdrop-blur-sm rounded-lg"
-                        onClick={handleCopy}
-                        title="Copy message"
-                      >
-                        <AnimatePresence mode="wait">
-                          {copied ? (
-                            <motion.div
-                              key="check"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              exit={{ scale: 0 }}
-                            >
-                              <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-green-600" />
-                            </motion.div>
-                          ) : (
-                            <motion.div
-                              key="copy"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              exit={{ scale: 0 }}
-                            >
-                              <Copy className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </Button>
-                    </motion.div>
-
-                    {isAssistant && onRegenerate && (
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation hover:bg-white/20 dark:hover:bg-black/20 backdrop-blur-sm rounded-lg"
-                          onClick={onRegenerate}
-                          title="Regenerate response"
-                        >
-                          <RotateCcw className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-                        </Button>
-                      </motion.div>
-                    )}
-
-                    {onDelete && (
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="h-8 w-8 sm:h-7 sm:w-7 text-red-400 hover:text-red-300 hover:bg-red-500/20 touch-manipulation backdrop-blur-sm rounded-lg"
-                          onClick={onDelete}
-                          title="Delete message"
-                        >
-                          <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
-                        </Button>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-            </AnimatePresence>
+            {!isEditing && (
+              <div className="absolute -top-3 right-2">
+                <MessageActions
+                  message={message}
+                  isLastMessage={isLastMessage}
+                  onRegenerate={onRegenerate}
+                  onDelete={onDelete}
+                  onBookmark={handleToggleBookmark}
+                  onEdit={isUser ? handleEdit : undefined}
+                  showActions={showActions || isLastMessage}
+                />
+              </div>
+            )}
           </Card>
         </motion.div>
+
+        {/* Message reactions */}
+        {!isEditing && reactions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-2"
+          >
+            <MessageReactions
+              messageId={message.id}
+              reactions={reactions}
+              onAddReaction={handleAddReaction}
+              onRemoveReaction={handleRemoveReaction}
+            />
+          </motion.div>
+        )}
 
         {/* Message metadata */}
         <motion.div
@@ -259,21 +293,42 @@ export function MessageBubble({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className={cn(
-            'flex items-center gap-2 mt-2 text-xs text-muted-foreground/70'
+            'flex items-center justify-between mt-2 text-xs text-muted-foreground/70'
           )}
         >
-          {/* Timestamp */}
-          <Badge variant="outline" size="sm" className="text-xs font-normal">
-            {formatTimestamp(message.createdAt)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {/* Timestamp */}
+            <Badge variant="outline" size="sm" className="text-xs font-normal">
+              {formatTimestamp(message.createdAt)}
+            </Badge>
 
-          {/* Status indicator for user messages */}
-          {isUser && message.status && (
-            <MessageStatusIndicator
-              status={message.status}
-              timestamp={message.createdAt}
-            />
-          )}
+            {/* Bookmark indicator */}
+            {message.isBookmarked && (
+              <Badge variant="secondary" size="sm" className="text-xs">
+                bookmarked
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Status indicator for user messages */}
+            {isUser && message.status && (
+              <MessageStatusIndicator
+                status={message.status}
+                timestamp={message.createdAt}
+              />
+            )}
+
+            {/* Read receipts */}
+            {isUser && (
+              <ReadReceipts
+                messageId={message.id}
+                isRead={!!message.readAt}
+                readAt={message.readAt}
+                showReadStatus={true}
+              />
+            )}
+          </div>
         </motion.div>
       </div>
 
@@ -286,8 +341,8 @@ export function MessageBubble({
           transition={{ delay: 0.2, duration: 0.4, type: "spring" }}
         >
           <Avatar size="default" variant="glass" className="shadow-medium hover-lift">
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-              <User className="w-4 h-4" />
+            <AvatarFallback className="gradient-accent text-primary-foreground">
+              <User className="w-4 h-4 icon-monochrome" />
             </AvatarFallback>
           </Avatar>
         </motion.div>

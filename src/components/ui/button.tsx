@@ -3,21 +3,23 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/utils/cn';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 btn-modern hover-lift',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-semibold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 btn-modern hover-lift focus-ring',
   {
     variants: {
       variant: {
-        default: 'gradient-primary text-white shadow-medium hover:shadow-large active:scale-95',
+        default: 'gradient-primary text-primary-foreground shadow-medium hover:shadow-large active:scale-95',
         destructive:
           'gradient-danger text-white shadow-medium hover:shadow-large active:scale-95',
         outline:
-          'border-2 border-primary/20 bg-background/80 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/40 shadow-soft hover:shadow-medium',
+          'border-2 border-border bg-background/80 backdrop-blur-sm hover:bg-accent/50 hover:border-foreground/20 shadow-soft hover:shadow-medium',
         secondary:
-          'bg-secondary/80 text-secondary-foreground backdrop-blur-sm shadow-soft hover:bg-secondary hover:shadow-medium active:scale-95',
-        ghost: 'hover:bg-accent/50 hover:text-accent-foreground backdrop-blur-sm active:scale-95',
-        link: 'text-primary underline-offset-4 hover:underline hover-glow',
+          'bg-secondary text-secondary-foreground backdrop-blur-sm shadow-soft hover:bg-secondary/80 hover:shadow-medium active:scale-95',
+        ghost: 'hover:bg-accent/30 hover:text-accent-foreground backdrop-blur-sm active:scale-95 hover-fade',
+        link: 'text-foreground underline-offset-4 hover:underline hover-glow hover-fade',
         gradient: 'gradient-accent text-white shadow-medium hover:shadow-large active:scale-95',
-        glass: 'glass text-foreground hover:bg-white/30 dark:hover:bg-black/30 shadow-medium',
+        glass: 'glass text-foreground hover:bg-foreground/5 shadow-medium hover:shadow-large',
+        monochrome: 'bg-foreground text-background hover:bg-foreground/90 shadow-medium hover:shadow-large active:scale-95',
+        'monochrome-outline': 'border-2 border-foreground text-foreground hover:bg-foreground hover:text-background shadow-soft hover:shadow-medium',
       },
       size: {
         default: 'h-11 px-6 py-2.5',

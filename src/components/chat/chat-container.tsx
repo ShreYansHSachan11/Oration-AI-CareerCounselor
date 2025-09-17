@@ -4,14 +4,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 import { TypingIndicator, AdvancedTypingIndicator } from './typing-indicator';
+import { EnhancedTypingIndicator } from './enhanced-typing-indicator';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { ChatContainerSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { api } from '@/trpc/react';
-import { MessageWithStatus } from '@/types/message';
+import { MessageWithStatus, ReactionSummary } from '@/types/message';
 import { Message } from '@prisma/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMessageFeatures } from '@/hooks/use-message-features';
 import {
   useErrorContext,
   useAPIErrorHandler,
@@ -33,8 +35,19 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
   const [typingStage, setTypingStage] = useState<
     'typing' | 'thinking' | 'generating' | 'finalizing'
   >('typing');
+  const [messageReactions, setMessageReactions] = useState<Record<string, ReactionSummary[]>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { handleAPIError } = useAPIErrorHandler();
+  
+  // Message features hook
+  const {
+    handleAddReaction,
+    handleRemoveReaction,
+    handleToggleBookmark,
+    handleEditMessage,
+    handleMarkAsRead,
+    handleMarkSessionAsRead,
+  } = useMessageFeatures();
 
   // Fetch messages for the session
   const {
@@ -55,6 +68,10 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
         content,
         role: 'USER',
         sessionId,
+        isBookmarked: false,
+        isEdited: false,
+        editedAt: null,
+        readAt: null,
         createdAt: new Date(),
         status: 'sending',
         isOptimistic: true,
@@ -147,13 +164,16 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (content: string, richContent?: any) => {
     if (!content.trim() || sendMessageMutation.isPending) return;
 
     sendMessageMutation.mutate({
       sessionId,
       content: content.trim(),
     });
+
+    // Mark session as read when user sends a message
+    handleMarkSessionAsRead(sessionId);
   };
 
   const handleRegenerateResponse = (messageId: string) => {
@@ -199,9 +219,9 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Animated background */}
-          <div className="absolute inset-0 animated-gradient opacity-5 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-transparent to-purple-50/20 dark:from-blue-950/20 dark:to-purple-950/20 pointer-events-none" />
+          {/* Animated monochromatic background */}
+          <div className="absolute inset-0 animated-gradient opacity-3 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-muted/10 via-transparent to-accent/10 pointer-events-none" />
           {/* Messages Area */}
           <div className="flex-1 overflow-hidden relative z-10">
             <MessageList
@@ -209,11 +229,17 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
               isLoading={isLoadingMessages}
               onRegenerateResponse={handleRegenerateResponse}
               onDeleteMessage={handleDeleteMessage}
+              onEditMessage={handleEditMessage}
+              onAddReaction={handleAddReaction}
+              onRemoveReaction={handleRemoveReaction}
+              onToggleBookmark={handleToggleBookmark}
+              onMarkAsRead={handleMarkAsRead}
               isRegenerating={regenerateResponseMutation.isPending}
+              messageReactions={messageReactions}
               className="pb-2"
             />
 
-            {/* Typing Indicator */}
+            {/* Enhanced Typing Indicator */}
             <AnimatePresence>
               {isAiTyping && (
                 <motion.div
@@ -223,9 +249,15 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <AdvancedTypingIndicator
+                  <EnhancedTypingIndicator
                     isVisible={true}
-                    stage={typingStage}
+                    isAITyping={true}
+                    message={
+                      typingStage === 'thinking' ? 'AI is thinking...' :
+                      typingStage === 'generating' ? 'AI is generating response...' :
+                      typingStage === 'finalizing' ? 'AI is finalizing response...' :
+                      'AI is typing...'
+                    }
                   />
                 </motion.div>
               )}
@@ -237,7 +269,7 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
 
           {/* Chat Input */}
           <motion.div
-            className="border-t border-white/10 glass backdrop-blur-xl p-4 safe-area-inset-bottom relative z-10"
+            className="border-t border-border/20 glass-strong backdrop-blur-xl p-4 safe-area-inset-bottom relative z-10"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.3 }}
@@ -248,6 +280,7 @@ export function ChatContainer({ sessionId, className }: ChatContainerProps) {
               disabled={!sessionId}
               placeholder="Ask me anything about your career..."
               maxLength={4000}
+              enableRichText={true}
             />
           </motion.div>
         </motion.div>

@@ -15,7 +15,13 @@ interface MessageListProps {
   isLoading?: boolean;
   onRegenerateResponse?: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  onEditMessage?: (messageId: string, newContent: string) => void;
+  onAddReaction?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string) => void;
+  onToggleBookmark?: (messageId: string) => void;
+  onMarkAsRead?: (messageId: string) => void;
   isRegenerating?: boolean;
+  messageReactions?: Record<string, import('@/types/message').ReactionSummary[]>;
   className?: string;
 }
 
@@ -24,7 +30,13 @@ export function MessageList({
   isLoading,
   onRegenerateResponse,
   onDeleteMessage,
+  onEditMessage,
+  onAddReaction,
+  onRemoveReaction,
+  onToggleBookmark,
+  onMarkAsRead,
   isRegenerating,
+  messageReactions = {},
   className,
 }: MessageListProps) {
   const [newMessageCount, setNewMessageCount] = useState(0);
@@ -194,7 +206,13 @@ export function MessageList({
                     onDelete={
                       onDeleteMessage ? () => onDeleteMessage(message.id) : undefined
                     }
+                    onEdit={onEditMessage}
+                    onAddReaction={onAddReaction}
+                    onRemoveReaction={onRemoveReaction}
+                    onToggleBookmark={onToggleBookmark}
+                    onMarkAsRead={onMarkAsRead}
                     isRegenerating={isRegenerating && index === messages.length - 1}
+                    reactions={messageReactions[message.id] || []}
                   />
                 </motion.div>
               ))}

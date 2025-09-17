@@ -22,6 +22,7 @@ export class OptimizedQueries {
       sortBy?: 'updatedAt' | 'createdAt' | 'title';
       sortOrder?: 'asc' | 'desc';
       includeArchived?: boolean;
+      includeLatestMessage?: boolean;
     } = {}
   ) {
     const {
@@ -31,9 +32,10 @@ export class OptimizedQueries {
       sortBy = 'updatedAt',
       sortOrder = 'desc',
       includeArchived = false,
+      includeLatestMessage = false,
     } = options;
 
-    const cacheKey = cacheKeys.userSessions(userId, limit, search, includeArchived);
+    const cacheKey = cacheKeys.userSessions(userId, limit, search, includeArchived, includeLatestMessage);
 
     return withCache(
       cacheKey,
@@ -81,20 +83,21 @@ export class OptimizedQueries {
             _count: {
               select: { messages: true },
             },
-            // Only include recent message for preview if needed
-            messages: search
+            // Include latest message for preview if requested
+            messages: includeLatestMessage || search
               ? {
-                  where: {
+                  where: search ? {
                     content: {
                       contains: search,
                       mode: 'insensitive',
                     },
-                  },
+                  } : undefined,
                   take: 1,
                   orderBy: { createdAt: 'desc' },
                   select: {
                     id: true,
                     content: true,
+                    role: true,
                     createdAt: true,
                   },
                 }

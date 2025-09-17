@@ -3,7 +3,7 @@ import { cn } from '@/utils/cn';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const avatarVariants = cva(
-  'relative flex shrink-0 overflow-hidden rounded-full border-2 border-white/20 shadow-medium',
+  'relative flex shrink-0 overflow-hidden rounded-full border-2 border-border/30 shadow-medium hover-lift transition-all duration-300',
   {
     variants: {
       size: {
@@ -13,9 +13,11 @@ const avatarVariants = cva(
         xl: 'h-16 w-16',
       },
       variant: {
-        default: 'bg-muted',
-        gradient: 'gradient-primary',
-        glass: 'glass',
+        default: 'bg-muted hover:bg-muted/80',
+        gradient: 'gradient-primary hover:shadow-large',
+        glass: 'glass hover:border-border/50',
+        monochrome: 'bg-foreground hover:bg-foreground/90',
+        'monochrome-outline': 'bg-background border-foreground hover:bg-foreground/5',
       },
     },
     defaultVariants: {

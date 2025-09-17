@@ -31,6 +31,7 @@ export const chatRouter = createTRPCRouter({
           .default('updatedAt'),
         sortOrder: z.enum(['asc', 'desc']).default('desc'),
         includeArchived: z.boolean().default(false),
+        includeLatestMessage: z.boolean().default(false),
       })
     )
     .use(async opts => {
@@ -61,6 +62,7 @@ export const chatRouter = createTRPCRouter({
         sortBy,
         sortOrder,
         includeArchived: input.includeArchived,
+        includeLatestMessage: input.includeLatestMessage,
       });
     }),
 
@@ -995,5 +997,416 @@ export const chatRouter = createTRPCRouter({
       const optimizedQueries = new OptimizedQueries(ctx.prisma);
 
       return optimizedQueries.getSessionStats(userId);
+    }),
+
+  // Add reaction to message
+  addReaction: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+        emoji: z.string().min(1).max(10),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { messageId, emoji } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the message exists and user has access
+      const message = await ctx.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          session: {
+            userId,
+          },
+        },
+      });
+
+      if (!message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found',
+        });
+      }
+
+      // Add or update reaction
+      const reaction = await ctx.prisma.messageReaction.upsert({
+        where: {
+          messageId_userId: {
+            messageId,
+            userId,
+          },
+        },
+        update: {
+          emoji,
+        },
+        create: {
+          messageId,
+          userId,
+          emoji,
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+              image: true,
+            },
+          },
+        },
+      });
+
+      return reaction;
+    }),
+
+  // Remove reaction from message
+  removeReaction: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { messageId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the message exists and user has access
+      const message = await ctx.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          session: {
+            userId,
+          },
+        },
+      });
+
+      if (!message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found',
+        });
+      }
+
+      // Remove reaction
+      await ctx.prisma.messageReaction.deleteMany({
+        where: {
+          messageId,
+          userId,
+        },
+      });
+
+      return { success: true };
+    }),
+
+  // Get reactions for a message
+  getMessageReactions: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { messageId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the message exists and user has access
+      const message = await ctx.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          session: {
+            userId,
+          },
+        },
+      });
+
+      if (!message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found',
+        });
+      }
+
+      const reactions = await ctx.prisma.messageReaction.findMany({
+        where: { messageId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      // Group reactions by emoji
+      const reactionSummary = reactions.reduce((acc, reaction) => {
+        const existing = acc.find(r => r.emoji === reaction.emoji);
+        if (existing) {
+          existing.count++;
+          existing.users.push({
+            id: reaction.user.id,
+            name: reaction.user.name,
+            image: reaction.user.image,
+          });
+          if (reaction.userId === userId) {
+            existing.userReacted = true;
+          }
+        } else {
+          acc.push({
+            emoji: reaction.emoji,
+            count: 1,
+            userReacted: reaction.userId === userId,
+            users: [{
+              id: reaction.user.id,
+              name: reaction.user.name,
+              image: reaction.user.image,
+            }],
+          });
+        }
+        return acc;
+      }, [] as Array<{
+        emoji: string;
+        count: number;
+        userReacted: boolean;
+        users: Array<{
+          id: string;
+          name: string | null;
+          image: string | null;
+        }>;
+      }>);
+
+      return reactionSummary;
+    }),
+
+  // Toggle bookmark on message
+  toggleBookmark: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { messageId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the message exists and user has access
+      const message = await ctx.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          session: {
+            userId,
+          },
+        },
+      });
+
+      if (!message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found',
+        });
+      }
+
+      // Toggle bookmark
+      const updatedMessage = await ctx.prisma.message.update({
+        where: { id: messageId },
+        data: {
+          isBookmarked: !message.isBookmarked,
+        },
+      });
+
+      return {
+        messageId,
+        isBookmarked: updatedMessage.isBookmarked,
+      };
+    }),
+
+  // Get bookmarked messages for user
+  getBookmarkedMessages: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(50),
+        cursor: z.string().optional(),
+        sessionId: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor, sessionId } = input;
+      const userId = ctx.session.user.id;
+
+      const whereClause: any = {
+        isBookmarked: true,
+        session: {
+          userId,
+        },
+      };
+
+      if (sessionId) {
+        whereClause.sessionId = sessionId;
+      }
+
+      if (cursor) {
+        whereClause.id = {
+          lt: cursor,
+        };
+      }
+
+      const messages = await ctx.prisma.message.findMany({
+        where: whereClause,
+        include: {
+          session: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          reactions: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit + 1,
+      });
+
+      const hasMore = messages.length > limit;
+      const items = hasMore ? messages.slice(0, -1) : messages;
+      const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
+
+      return {
+        items,
+        nextCursor,
+        hasMore,
+      };
+    }),
+
+  // Edit message
+  editMessage: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+        newContent: z.string().min(1).max(4000),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { messageId, newContent } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the message exists, belongs to user, and is a user message
+      const message = await ctx.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          role: 'USER',
+          session: {
+            userId,
+          },
+        },
+      });
+
+      if (!message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found or cannot be edited',
+        });
+      }
+
+      // Update message
+      const updatedMessage = await ctx.prisma.message.update({
+        where: { id: messageId },
+        data: {
+          content: newContent,
+          isEdited: true,
+          editedAt: new Date(),
+        },
+      });
+
+      return updatedMessage;
+    }),
+
+  // Mark message as read
+  markMessageAsRead: protectedProcedure
+    .input(
+      z.object({
+        messageId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { messageId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the message exists and user has access
+      const message = await ctx.prisma.message.findFirst({
+        where: {
+          id: messageId,
+          session: {
+            userId,
+          },
+        },
+      });
+
+      if (!message) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Message not found',
+        });
+      }
+
+      // Mark as read if not already read
+      if (!message.readAt) {
+        await ctx.prisma.message.update({
+          where: { id: messageId },
+          data: {
+            readAt: new Date(),
+          },
+        });
+      }
+
+      return { success: true };
+    }),
+
+  // Mark all messages in session as read
+  markSessionAsRead: protectedProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { sessionId } = input;
+      const userId = ctx.session.user.id;
+
+      // Verify the session belongs to the user
+      const session = await ctx.prisma.chatSession.findFirst({
+        where: { id: sessionId, userId },
+      });
+
+      if (!session) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Chat session not found',
+        });
+      }
+
+      // Mark all unread messages as read
+      const result = await ctx.prisma.message.updateMany({
+        where: {
+          sessionId,
+          readAt: null,
+        },
+        data: {
+          readAt: new Date(),
+        },
+      });
+
+      return { 
+        success: true, 
+        markedCount: result.count 
+      };
     }),
 });

@@ -1,6 +1,6 @@
 /**
  * Main application integration component
- * Brings together all features into a cohesive experience
+ * Brings together all features into a cohesive experience with final polish
  */
 
 'use client';
@@ -12,6 +12,9 @@ import { useRouter } from 'next/navigation';
 import { ErrorBoundary } from '@/components/error/error-boundary';
 import { AppLoading } from '@/components/layout/app-loading';
 import { performanceMonitor } from '@/lib/performance-monitor';
+import { globalPerformanceMonitor, deviceOptimizations } from '@/lib/performance-optimization';
+import { FinalIntegrationPolish } from '@/components/app/final-integration-polish';
+import { UXEnhancementProvider, EnhancedLoading } from '@/components/app/ux-enhancements';
 import {
   NotificationToast,
   ScrollToTopButton,
@@ -19,6 +22,7 @@ import {
 } from '@/components/ui/enhanced-animations';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/trpc/react';
+import { cn } from '@/lib/utils';
 
 // Lazy load components for better performance
 const ChatContainer = React.lazy(() =>
@@ -27,9 +31,9 @@ const ChatContainer = React.lazy(() =>
   }))
 );
 
-const ChatSidebar = React.lazy(() =>
-  import('@/components/chat/chat-sidebar').then(module => ({
-    default: module.ChatSidebar,
+const ImprovedChatSidebar = React.lazy(() =>
+  import('@/components/chat/improved-chat-sidebar').then(module => ({
+    default: module.ImprovedChatSidebar,
   }))
 );
 
@@ -51,16 +55,30 @@ export function AppIntegration({ children }: AppIntegrationProps) {
     string | undefined
   >();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [isOptimized, setIsOptimized] = React.useState(false);
 
-  // Performance monitoring
+  // Enhanced performance monitoring and optimization
   React.useEffect(() => {
+    // Apply device-specific optimizations
+    const deviceCapabilities = deviceOptimizations.applyOptimizations();
+    
     // Monitor performance metrics
-    const cleanup = () => {
+    const performanceCleanup = () => {
       performanceMonitor.cleanup();
+      if (globalPerformanceMonitor) {
+        globalPerformanceMonitor.cleanup();
+      }
     };
 
+    // Log device capabilities for debugging
+    console.log('Device capabilities:', deviceCapabilities);
+    
+    // Mark as optimized
+    setIsOptimized(true);
+
     // Cleanup on unmount
-    return cleanup;
+    return performanceCleanup;
   }, []);
 
   // Handle authentication state
@@ -97,9 +115,23 @@ export function AppIntegration({ children }: AppIntegrationProps) {
     createSessionMutation.mutate({});
   }, [createSessionMutation]);
 
-  // Show loading state
-  if (status === 'loading' || isLoading) {
-    return <AppLoading isLoading={true} />;
+  // Handle sidebar toggle
+  const handleToggleSidebar = React.useCallback(() => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  }, [sidebarCollapsed]);
+
+  // Show enhanced loading state
+  if (status === 'loading' || isLoading || !isOptimized) {
+    return (
+      <UXEnhancementProvider>
+        <FinalIntegrationPolish>
+          <EnhancedLoading 
+            isLoading={true} 
+            message="Optimizing your experience..." 
+          />
+        </FinalIntegrationPolish>
+      </UXEnhancementProvider>
+    );
   }
 
   // Don't render if not authenticated
@@ -110,85 +142,103 @@ export function AppIntegration({ children }: AppIntegrationProps) {
   // If children are provided, render them (for custom pages)
   if (children) {
     return (
-      <ErrorBoundary>
-        <PageTransition>{children}</PageTransition>
-        <ScrollToTopButton />
-        <AnimatePresence>
-          {toasts.map(toast => (
-            <NotificationToast
-              key={toast.id}
-              message={toast.message}
-              type={toast.type}
-              onClose={() => removeToast(toast.id)}
-            />
-          ))}
-        </AnimatePresence>
-      </ErrorBoundary>
+      <UXEnhancementProvider>
+        <FinalIntegrationPolish>
+          <ErrorBoundary>
+            <PageTransition>{children}</PageTransition>
+            <ScrollToTopButton />
+            <AnimatePresence>
+              {toasts.map(toast => (
+                <NotificationToast
+                  key={toast.id}
+                  message={toast.message}
+                  type={toast.type}
+                  onClose={() => removeToast(toast.id)}
+                />
+              ))}
+            </AnimatePresence>
+          </ErrorBoundary>
+        </FinalIntegrationPolish>
+      </UXEnhancementProvider>
     );
   }
 
-  // Main chat application
+  // Main chat application with full integration and polish
   return (
-    <ErrorBoundary>
-      <Suspense fallback={<AppLoading isLoading={true} />}>
-        <AppLayout
-          sidebar={
-            <Suspense
-              fallback={
-                <div className="w-80 bg-background border-r animate-pulse" />
-              }
-            >
-              <ChatSidebar
-                selectedSessionId={selectedSessionId}
-                onSessionSelect={handleSessionSelect}
-                onNewChat={handleNewChat}
-              />
-            </Suspense>
-          }
-        >
-          <div className="flex flex-col h-full">
-            {selectedSessionId ? (
-              <motion.div
-                key={selectedSessionId}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="flex-1 flex flex-col"
-              >
+    <UXEnhancementProvider>
+      <FinalIntegrationPolish>
+        <ErrorBoundary>
+          <Suspense fallback={<EnhancedLoading isLoading={true} message="Loading chat interface..." />}>
+            <AppLayout
+              sidebar={
                 <Suspense
                   fallback={
-                    <div className="flex-1 animate-pulse bg-muted/10" />
+                    <div className={cn(
+                      "bg-background border-r animate-pulse transition-all duration-300",
+                      sidebarCollapsed ? "w-16" : "w-80"
+                    )} />
                   }
                 >
-                  <ChatContainer sessionId={selectedSessionId} />
+                  <ImprovedChatSidebar
+                    selectedSessionId={selectedSessionId}
+                    onSessionSelect={handleSessionSelect}
+                    onNewChat={handleNewChat}
+                    isCollapsed={sidebarCollapsed}
+                    onToggleCollapse={handleToggleSidebar}
+                  />
                 </Suspense>
-              </motion.div>
-            ) : (
-              <WelcomeScreen 
-                onNewChat={handleNewChat} 
-                isCreatingSession={createSessionMutation.isLoading}
+              }
+              sidebarCollapsed={sidebarCollapsed}
+              onToggleSidebar={handleToggleSidebar}
+            >
+              <main id="main-content" className="flex flex-col h-full">
+                {selectedSessionId ? (
+                  <motion.div
+                    key={selectedSessionId}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex-1 flex flex-col"
+                  >
+                    <Suspense
+                      fallback={
+                        <EnhancedLoading 
+                          isLoading={true} 
+                          message="Loading conversation..." 
+                        />
+                      }
+                    >
+                      <ChatContainer sessionId={selectedSessionId} />
+                    </Suspense>
+                  </motion.div>
+                ) : (
+                  <WelcomeScreen 
+                    onNewChat={handleNewChat} 
+                    isCreatingSession={createSessionMutation.isLoading}
+                  />
+                )}
+              </main>
+            </AppLayout>
+          </Suspense>
+
+          {/* Global UI elements */}
+          <ScrollToTopButton />
+
+          {/* Toast notifications */}
+          <AnimatePresence>
+            {toasts.map(toast => (
+              <NotificationToast
+                key={toast.id}
+                message={toast.message}
+                type={toast.type}
+                onClose={() => removeToast(toast.id)}
               />
-            )}
-          </div>
-        </AppLayout>
-      </Suspense>
-
-      {/* Global UI elements */}
-      <ScrollToTopButton />
-
-      {/* Toast notifications */}
-      <AnimatePresence>
-        {toasts.map(toast => (
-          <NotificationToast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </AnimatePresence>
-    </ErrorBoundary>
+            ))}
+          </AnimatePresence>
+        </ErrorBoundary>
+      </FinalIntegrationPolish>
+    </UXEnhancementProvider>
   );
 }
 

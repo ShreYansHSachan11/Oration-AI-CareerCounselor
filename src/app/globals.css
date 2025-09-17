@@ -2,31 +2,44 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
   
-  /* Modern gradient backgrounds */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --gradient-success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  --gradient-danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  /* Monochromatic gradient backgrounds using only black, white, and gray tones */
+  --gradient-primary: linear-gradient(135deg, #000000 0%, #404040 50%, #000000 100%);
+  --gradient-secondary: linear-gradient(135deg, #f5f5f5 0%, #e5e5e5 50%, #d4d4d4 100%);
+  --gradient-accent: linear-gradient(135deg, #262626 0%, #525252 50%, #737373 100%);
+  --gradient-success: linear-gradient(135deg, #a3a3a3 0%, #d4d4d4 100%);
+  --gradient-warning: linear-gradient(135deg, #737373 0%, #a3a3a3 100%);
+  --gradient-danger: linear-gradient(135deg, #404040 0%, #262626 100%);
+  --gradient-glass-light: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+  --gradient-glass-dark: linear-gradient(135deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.1) 100%);
   
-  /* Glassmorphism effects */
-  --glass-bg: rgba(255, 255, 255, 0.25);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  /* Sophisticated glassmorphism effects using transparent blacks and whites */
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  --glass-bg-dark: rgba(0, 0, 0, 0.15);
+  --glass-border-dark: rgba(255, 255, 255, 0.1);
+  --glass-shadow-dark: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   
-  /* Modern shadows */
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.16);
+  /* Sophisticated shadow systems for depth without color */
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.2);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 0 20px rgba(0, 0, 0, 0.1);
   
-  /* Animation durations */
+  /* Animation durations for smooth theme transitions */
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 350ms;
+  --duration-theme: 400ms;
+  
+  /* Monochromatic hover and focus states */
+  --hover-opacity: 0.8;
+  --focus-opacity: 0.9;
+  --active-opacity: 0.7;
 }
 
 @theme inline {
@@ -38,27 +51,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #000000;
+    --foreground: #ffffff;
     
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --gradient-success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    --gradient-danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    /* Dark mode monochromatic gradients */
+    --gradient-primary: linear-gradient(135deg, #ffffff 0%, #a3a3a3 50%, #ffffff 100%);
+    --gradient-secondary: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #262626 100%);
+    --gradient-accent: linear-gradient(135deg, #d4d4d4 0%, #a3a3a3 50%, #737373 100%);
+    --gradient-success: linear-gradient(135deg, #525252 0%, #262626 100%);
+    --gradient-warning: linear-gradient(135deg, #a3a3a3 0%, #737373 100%);
+    --gradient-danger: linear-gradient(135deg, #d4d4d4 0%, #a3a3a3 100%);
+    --gradient-glass-light: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    --gradient-glass-dark: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
     
-    /* Dark glassmorphism */
-    --glass-bg: rgba(0, 0, 0, 0.25);
+    /* Dark glassmorphism with monochromatic tones */
+    --glass-bg: rgba(0, 0, 0, 0.2);
     --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    --glass-bg-dark: rgba(0, 0, 0, 0.3);
+    --glass-border-dark: rgba(255, 255, 255, 0.05);
+    --glass-shadow-dark: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
     
-    /* Dark shadows */
-    --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.2);
-    --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.3);
-    --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.5);
+    /* Enhanced dark shadows */
+    --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.6);
+    --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 20px rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -68,7 +88,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Modern gradient utilities */
+/* Monochromatic gradient utilities */
 .gradient-primary {
   background: var(--gradient-primary);
 }
@@ -93,23 +113,54 @@ body {
   background: var(--gradient-danger);
 }
 
-/* Glassmorphism utilities */
+.gradient-glass-light {
+  background: var(--gradient-glass-light);
+}
+
+.gradient-glass-dark {
+  background: var(--gradient-glass-dark);
+}
+
+/* Modern glassmorphism effects using transparent blacks and whites */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+  transition: all var(--duration-normal) ease;
 }
 
 .glass-subtle {
   background: var(--glass-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
+  transition: all var(--duration-normal) ease;
 }
 
-/* Modern shadow utilities */
+.glass-strong {
+  background: var(--glass-bg-dark);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border-dark);
+  box-shadow: var(--glass-shadow-dark);
+  transition: all var(--duration-normal) ease;
+}
+
+/* Dark theme glassmorphism */
+.dark .glass {
+  background: var(--glass-bg-dark);
+  border-color: var(--glass-border-dark);
+  box-shadow: var(--glass-shadow-dark);
+}
+
+.dark .glass-subtle {
+  background: var(--glass-bg-dark);
+  border-color: var(--glass-border-dark);
+}
+
+/* Sophisticated shadow system for depth without color */
 .shadow-soft {
   box-shadow: var(--shadow-soft);
 }
@@ -126,44 +177,85 @@ body {
   box-shadow: var(--shadow-xl);
 }
 
-/* Animated gradient backgrounds */
+.shadow-inner {
+  box-shadow: var(--shadow-inner);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.shadow-none {
+  box-shadow: none;
+}
+
+/* Animated monochromatic gradient backgrounds */
 .animated-gradient {
-  background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+  background: linear-gradient(-45deg, #000000, #404040, #737373, #a3a3a3, #d4d4d4, #ffffff);
   background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  animation: gradientShift 20s ease infinite;
+}
+
+.dark .animated-gradient {
+  background: linear-gradient(-45deg, #ffffff, #d4d4d4, #a3a3a3, #737373, #404040, #000000);
 }
 
 @keyframes gradientShift {
   0% {
     background-position: 0% 50%;
   }
-  50% {
+  25% {
     background-position: 100% 50%;
+  }
+  50% {
+    background-position: 50% 100%;
+  }
+  75% {
+    background-position: 0% 50%;
   }
   100% {
     background-position: 0% 50%;
   }
 }
 
-/* Micro-interactions */
+/* Interactive hover states and micro-animations using opacity and shadows */
 .hover-lift {
-  transition: transform var(--duration-normal) ease, box-shadow var(--duration-normal) ease;
+  transition: transform var(--duration-normal) ease, box-shadow var(--duration-normal) ease, opacity var(--duration-fast) ease;
 }
 
 .hover-lift:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-large);
+  opacity: var(--hover-opacity);
 }
 
 .hover-glow {
-  transition: box-shadow var(--duration-normal) ease;
+  transition: box-shadow var(--duration-normal) ease, opacity var(--duration-fast) ease;
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+  box-shadow: var(--shadow-glow);
+  opacity: var(--hover-opacity);
 }
 
-/* Modern button animations */
+.hover-scale {
+  transition: transform var(--duration-normal) ease, opacity var(--duration-fast) ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+  opacity: var(--hover-opacity);
+}
+
+.hover-fade {
+  transition: opacity var(--duration-normal) ease;
+}
+
+.hover-fade:hover {
+  opacity: var(--hover-opacity);
+}
+
+/* Modern button styles with black/white gradients and hover effects */
 .btn-modern {
   position: relative;
   overflow: hidden;
@@ -177,12 +269,26 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transition: left var(--duration-slow) ease;
+}
+
+.dark .btn-modern::before {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.15), transparent);
 }
 
 .btn-modern:hover::before {
   left: 100%;
+}
+
+.btn-modern:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-modern:active {
+  transform: translateY(0);
+  opacity: var(--active-opacity);
 }
 
 /* Pulse animation for loading states */
@@ -254,4 +360,339 @@ body {
 /* Prevent scroll anchoring issues */
 .overflow-anchor-auto {
   overflow-anchor: auto;
+}
+
+/* Elegant focus states and accessibility features */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.focus-ring:focus-visible {
+  outline-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.focus-subtle {
+  transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease;
+}
+
+.focus-subtle:focus-visible {
+  opacity: var(--focus-opacity);
+  transform: scale(1.01);
+}
+
+/* Smooth theme transitions with modern animations */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: var(--duration-theme);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced visual hierarchy through typography weights, spacing, and contrast */
+.text-hierarchy-1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.text-hierarchy-2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.text-hierarchy-3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+}
+
+.text-hierarchy-4 {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.text-hierarchy-5 {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.text-hierarchy-6 {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.7;
+  opacity: 0.8;
+}
+
+/* Minimalist icons and visual elements in monochromatic style */
+.icon-monochrome {
+  filter: grayscale(100%);
+  transition: opacity var(--duration-normal) ease, transform var(--duration-normal) ease;
+}
+
+.icon-monochrome:hover {
+  opacity: var(--hover-opacity);
+  transform: scale(1.1);
+}
+
+/* Modern spacing system */
+.spacing-xs { margin: 0.25rem; }
+.spacing-sm { margin: 0.5rem; }
+.spacing-md { margin: 1rem; }
+.spacing-lg { margin: 1.5rem; }
+.spacing-xl { margin: 2rem; }
+.spacing-2xl { margin: 3rem; }
+
+/* Advanced monochromatic button effects */
+.btn-monochrome-glow {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #000000 0%, #404040 100%);
+  color: white;
+  border: 1px solid #404040;
+  transition: all var(--duration-normal) ease;
+}
+
+.btn-monochrome-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--duration-slow) ease;
+}
+
+.btn-monochrome-glow:hover::before {
+  left: 100%;
+}
+
+.btn-monochrome-glow:hover {
+  background: linear-gradient(135deg, #262626 0%, #525252 100%);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.dark .btn-monochrome-glow {
+  background: linear-gradient(135deg, #ffffff 0%, #d4d4d4 100%);
+  color: black;
+  border: 1px solid #d4d4d4;
+}
+
+.dark .btn-monochrome-glow::before {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.2), transparent);
+}
+
+.dark .btn-monochrome-glow:hover {
+  background: linear-gradient(135deg, #f5f5f5 0%, #a3a3a3 100%);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Sophisticated card hover effects */
+.card-monochrome-lift {
+  transition: all var(--duration-normal) ease;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-monochrome-lift:hover {
+  transform: translateY(-8px) scale(1.02);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark .card-monochrome-lift {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .card-monochrome-lift:hover {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.15) 100%);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Advanced text effects */
+.text-monochrome-gradient {
+  background: linear-gradient(135deg, #000000 0%, #737373 50%, #000000 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 8s ease infinite;
+}
+
+.dark .text-monochrome-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #a3a3a3 50%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Sophisticated input focus effects */
+.input-monochrome-focus {
+  position: relative;
+  transition: all var(--duration-normal) ease;
+}
+
+.input-monochrome-focus::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #000000, transparent);
+  transition: all var(--duration-normal) ease;
+  transform: translateX(-50%);
+}
+
+.input-monochrome-focus:focus-within::after {
+  width: 100%;
+}
+
+.dark .input-monochrome-focus::after {
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+}
+
+/* Advanced loading states */
+.loading-monochrome {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-monochrome::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+.dark .loading-monochrome::before {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.3), transparent);
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Sophisticated border animations */
+.border-monochrome-animated {
+  position: relative;
+  border: 1px solid transparent;
+  background: linear-gradient(var(--background), var(--background)) padding-box,
+              linear-gradient(135deg, #000000, #737373, #000000) border-box;
+}
+
+.dark .border-monochrome-animated {
+  background: linear-gradient(var(--background), var(--background)) padding-box,
+              linear-gradient(135deg, #ffffff, #a3a3a3, #ffffff) border-box;
+}
+
+/* Enhanced scroll indicators */
+.scroll-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #000000, #737373, #000000);
+  transform-origin: left;
+  z-index: 9999;
+}
+
+.dark .scroll-indicator {
+  background: linear-gradient(90deg, #ffffff, #a3a3a3, #ffffff);
+}
+
+/* Monochromatic selection styles */
+::selection {
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+}
+
+.dark ::selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
+/* Advanced focus indicators */
+.focus-monochrome {
+  outline: none;
+  position: relative;
+}
+
+.focus-monochrome:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1), 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+.dark .focus-monochrome:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+/* Sophisticated tooltip styles */
+.tooltip-monochrome {
+  position: relative;
+}
+
+.tooltip-monochrome::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--duration-normal) ease;
+  backdrop-filter: blur(10px);
+}
+
+.tooltip-monochrome:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.dark .tooltip-monochrome::before {
+  background: rgba(255, 255, 255, 0.9);
+  color: black;
+}
+
+/* Responsive design utilities */
+@media (max-width: 640px) {
+  .text-hierarchy-1 { font-size: 1.875rem; }
+  .text-hierarchy-2 { font-size: 1.5rem; }
+  .text-hierarchy-3 { font-size: 1.25rem; }
+  
+  /* Mobile-specific monochromatic adjustments */
+  .glass {
+    backdrop-filter: blur(15px);
+  }
+  
+  .shadow-large {
+    box-shadow: var(--shadow-medium);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
 }
